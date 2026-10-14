@@ -29,7 +29,13 @@ bunx buninu-land
 bun x buninu-land
 ```
 
-需先有 Bun。啟動器沿用 browser 的流程：PATH 同時有 npx 與 bun 時使用 npx，否則使用 bunx，再否則使用 bun x。Casty 套件為 `@drxiaozhi/casty`；尚未安裝／快取時，套件執行器可能下載它。npx 保留原有安裝詢問，不加 `--yes`。
+需先有 Bun。啟動器沿用 browser 的流程：PATH 同時有 npx 與 bun 時使用 npx，否則使用 bunx，再否則使用 bun x。Casty 套件為 [`@drxiaozhi/casty`](https://www.npmjs.com/package/@drxiaozhi/casty)（[GitHub 原始碼](https://github.com/jjtseng93/casty)）；尚未安裝／快取時，套件執行器可能下載它。npx 保留原有安裝詢問，不加 `--yes`。
+
+發布後第一次執行 `npx buninu-land`，npx 會取得 Buninu Land，接著 launcher
+會在需要時自動下載終端前端
+[`@drxiaozhi/casty`](https://www.npmjs.com/package/@drxiaozhi/casty)
+（[GitHub 原始碼](https://github.com/jjtseng93/casty)）。
+`bun index.js` 使用同一套套件啟動流程；headless 模式不會下載 Casty。
 
 `--casty` 為預設前端；`--headless` 只執行 compositor。`--win32`、`--gtk`、`--appkit`、`--qt` 保留 browser 的原生 UI 占位命令，目前會說明尚未實作並以狀態碼 2 離開。第一個參數選擇前端，其餘參數原樣傳遞。
 
@@ -46,7 +52,7 @@ bun index.js --casty --help
 
 ```sh
 export CASTY_BROWSER="$PWD/compositor.js"
-bun ../casty/index.js about:blank
+bunx @drxiaozhi/casty about:blank
 ```
 
 Socket 目錄依序採用明確設定的 `$XDG_RUNTIME_DIR`、`$TMPDIR`、系統暫存目錄。Socket 直接放在該目錄，不另加子目錄；名稱預設 `wayland-buninu`。例如另一個終端：
@@ -68,6 +74,33 @@ bun compositor.js --headless --remote-debugging-port=9222
 手動 headless 與 Casty 自動啟動擇一使用，避免佔用相同 socket。Casty 的 URL 不會開網頁；顯示的是 Wayland 桌面。
 
 `bun compositor.js --help` 列出選項。預設 socket 是 `wayland-buninu`，預設畫面 800×600。`--socket=NAME` 可選擇其他 socket；`--remote-debugging-port=0` 自動選 port。`BUNINU_LOG=1` 將 Wayland requests 寫到 stderr。
+
+## 更新與清除快取
+
+可用 `npx buninu-land@latest` 明確要求最新發布版本。Casty 由選定的套件執行器
+另外解析；只清除 Buninu Land 快取，不會一併清除 Casty。Casty 離開時會印出版本。
+
+要重新取得快取中的套件，可使用以下指令。npm 11 或更新版本先列出項目，再刪除
+`buninu-land` 與 `@drxiaozhi/casty` 對應的 key；請將佔位文字換成實際列出的 key：
+
+```sh
+npm cache npx ls
+npm cache npx rm <buninu-land-key> <casty-key>
+
+# 或清除所有 npx 項目，包含其他工具：
+npm cache npx rm --force
+
+# 若 launcher 使用 bunx 或 bun x，清除 Bun 的套件快取：
+bun pm cache rm
+```
+
+舊版 npm 可先執行 `npm config get cache`，再刪除該目錄內的 `_npx` 子目錄。
+Linux／Android 常見路徑是 `~/.npm/_npx`，但自訂 npm cache 設定可能改變位置。
+清除整個 npx 或 Bun 快取也會影響其他已快取的套件。這些操作不會移除全域安裝的
+套件；若使用全域安裝，更新方式是 `npm install -g buninu-land@latest`。
+
+參考：[npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/)、
+[Bun 套件快取指令](https://bun.sh/docs/pm/cli/pm)。
 
 ## 結構
 
@@ -101,10 +134,9 @@ JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包�
 bun test
 ```
 
-測試包括協定 XML opcode、FD 參數、分段封包、socket 排他鎖、無效 client 隔離，以及真實 `weston-simple-shm` 動畫和 CDP PNG／JPEG。若沒有已安裝的 weston client，相關測試跳過。若鄰近有 `../casty`，另測其真實 launch/setup/screencast 程式；不自動安裝依賴。測試的截圖路徑會印在輸出中。Casty 測試涵蓋收到影像的流程，並未自動驗證終端 Kitty 顯示。
+測試包括協定 XML opcode、FD 參數、分段封包、socket 排他鎖、無效 client 隔離，以及真實 `weston-simple-shm` 動畫和 CDP PNG／JPEG。若沒有已安裝的 weston client，相關測試跳過。Casty 整合測試會在測試所需條件可用時，執行其真實 launch/setup/screencast 程式，否則跳過；不自動安裝依賴。測試的截圖路徑會印在輸出中。Casty 測試涵蓋收到影像的流程，並未自動驗證終端 Kitty 顯示。
 
-## 授權與發佈
+## 授權
 
 專案原始碼採 MIT，見 `LICENSE`。沿用的 browser 程式、CanvasKit WASM 及其內含元件、Wayland XML 各自的來源與授權，見 `THIRD_PARTY_NOTICES.md`、`LICENSES/`、`SOURCES.md`；第三方授權不被專案的 MIT 宣告取代。
 
-`package.json` 設定 public npm package、全域 `buninu-land` 指令，沒有 `files` 名單、build/install scripts 或 npm runtime dependencies。`npm pack --dry-run` 可檢查發佈內容；實際上傳使用 `npm publish --access public`。

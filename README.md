@@ -29,7 +29,13 @@ bunx buninu-land
 bun x buninu-land
 ```
 
-Bun must already be installed. The launcher follows the browser's selection order: use npx when both npx and bun are on PATH, otherwise bunx, otherwise bun x. The Casty package is `@drxiaozhi/casty`; the package runner may download it if it is not installed or cached. npx retains its installation prompt; the launcher does not add `--yes`.
+Bun must already be installed. The launcher follows the browser's selection order: use npx when both npx and bun are on PATH, otherwise bunx, otherwise bun x. The Casty package is [`@drxiaozhi/casty`](https://www.npmjs.com/package/@drxiaozhi/casty) ([source on GitHub](https://github.com/jjtseng93/casty)); the package runner may download it if it is not installed or cached. npx retains its installation prompt; the launcher does not add `--yes`.
+
+On the first `npx buninu-land` run after publication, npx obtains Buninu Land,
+then the launcher automatically downloads the terminal frontend
+[`@drxiaozhi/casty`](https://www.npmjs.com/package/@drxiaozhi/casty)
+([source on GitHub](https://github.com/jjtseng93/casty)) if needed.
+`bun index.js` uses the same package-based Casty launcher. A headless launch does not fetch Casty.
 
 `--casty` selects the default frontend; `--headless` runs only the compositor. `--win32`, `--gtk`, `--appkit`, and `--qt` preserve the browser's native UI placeholders. They currently report that the frontend is not implemented and exit with status 2. The first argument selects the frontend; all remaining arguments are forwarded unchanged.
 
@@ -46,7 +52,7 @@ You can also launch it through Casty yourself:
 
 ```sh
 export CASTY_BROWSER="$PWD/compositor.js"
-bun ../casty/index.js about:blank
+bunx @drxiaozhi/casty about:blank
 ```
 
 The socket directory is chosen in this order: an explicitly set `$XDG_RUNTIME_DIR`, `$TMPDIR`, then the system temporary directory. The socket is placed directly in that directory, with no additional subdirectory. Its default name is `wayland-buninu`. For example, in another terminal:
@@ -68,6 +74,37 @@ bun compositor.js --headless --remote-debugging-port=9222
 Choose either a manual headless launch or a Casty-managed launch to avoid occupying the same socket. URLs supplied to Casty do not open web pages; the display shows the Wayland desktop.
 
 Run `bun compositor.js --help` for options. The default socket is `wayland-buninu`, and the default display size is 800×600. Use `--socket=NAME` to select another socket or `--remote-debugging-port=0` to select a port automatically. `BUNINU_LOG=1` writes Wayland requests to stderr.
+
+## Updating and clearing cached packages
+
+To request the latest published Buninu Land explicitly, run `npx buninu-land@latest`.
+Casty is resolved separately by the selected package runner; clearing only the
+Buninu Land cache does not clear Casty's cache. Casty prints its version when it exits.
+
+To reinstall cached copies, use the cache-management commands below. For npm 11
+or later, list entries and remove the keys shown for `buninu-land` and
+`@drxiaozhi/casty` (replace the placeholders with your actual keys):
+
+```sh
+npm cache npx ls
+npm cache npx rm <buninu-land-key> <casty-key>
+
+# Alternatively, clear all npx entries, including other tools:
+npm cache npx rm --force
+
+# If the launcher uses bunx or bun x, clear Bun's package cache:
+bun pm cache rm
+```
+
+For older npm versions, run `npm config get cache` and remove the `_npx`
+subdirectory inside that location. The usual Linux/Android location is
+`~/.npm/_npx`; a custom npm cache setting may change it. Clearing the entire
+npx or Bun cache affects other cached packages too. These instructions do not
+uninstall global packages. To update a global installation, use
+`npm install -g buninu-land@latest`.
+
+References: [npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/),
+[Bun package-cache commands](https://bun.sh/docs/pm/cli/pm).
 
 ## Structure
 
@@ -101,10 +138,9 @@ JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP
 bun test
 ```
 
-Tests cover protocol XML opcodes, FD arguments, fragmented packets, exclusive socket locking, malformed-client isolation, real `weston-simple-shm` animation, and CDP PNG/JPEG output. Tests requiring a Weston client are skipped if it is not installed. When `../casty` is available, its actual launch/setup/screencast code is also tested; dependencies are not installed automatically. Screenshot paths are printed in the test output. Casty tests cover receiving images, but do not automatically verify Kitty graphics display in a terminal.
+Tests cover protocol XML opcodes, FD arguments, fragmented packets, exclusive socket locking, malformed-client isolation, real `weston-simple-shm` animation, and CDP PNG/JPEG output. Tests requiring a Weston client are skipped if it is not installed. Casty integration tests exercise its actual launch/setup/screencast code when the test prerequisites are available; otherwise they are skipped. Dependencies are not installed automatically. Screenshot paths are printed in the test output. Casty tests cover receiving images, but do not automatically verify Kitty graphics display in a terminal.
 
-## Licensing and publishing
+## Licensing
 
 The project's original code is MIT-licensed; see `LICENSE`. Sources and licenses for the reused browser code, CanvasKit WASM and its embedded components, and Wayland XML are documented in `THIRD_PARTY_NOTICES.md`, `LICENSES/`, and `SOURCES.md`. The project's MIT declaration does not replace third-party licenses.
 
-`package.json` configures a public npm package and the global `buninu-land` command. It has no `files` allowlist, build/install scripts, or npm runtime dependencies. Use `npm pack --dry-run` to inspect package contents and `npm publish --access public` to publish.

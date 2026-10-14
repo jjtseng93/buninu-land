@@ -1,0 +1,9 @@
+{
+  "lib/cdp-server.js": "afdfd910159f92f1f4743960a12f5ebb3ee6aa770094a5c53aa6ff4319cd2bc8",
+  "lib/user-agent.js": "4557985ea1c5d9f8e26fa7a5c52398367ea8d5807c41f6deaaa9796d49414b6b",
+  "lib/frame.js": "6333ca9b80f4658d55a13826ce2dc7ac7e9debbc34207d45b11d45cbf9bb178a",
+  "vendor/canvaskit/canvaskit.js": "d8ed15482165988891938e2ecada05fad51ac1a79a4ae302cb3a8f3bff87f4e1",
+  "vendor/canvaskit/canvaskit.wasm": "bd669c88bd033eaf62d673103a42231a737c6d12e4cc99f8548b2784b5772430",
+  "protocols/wayland.xml": "0c371e9c31f8178008a7ddecf431cbe12ec4b29ef7714803ecd3e20af925e7ed",
+  "protocols/xdg-shell.xml": "9d9e27038ca722f159a361293f8c6cd270dab907ab52de5b8ecfbb8d6b9651c2"
+}

@@ -1,6 +1,8 @@
+# Buninu Land
+
 [English](README.md) | 繁體中文
 
-# Buninu Land
+A Wayland compositor in JavaScript and WebAssembly for Bun
 
 用 Bun 直接執行的 Wayland compositor。第一版支援 headless 軟體合成，已用系統的 `weston-simple-shm` 驗證動畫，以及 Casty 的啟動、CDP 設定和畫面接收流程。沒有 build step、npm runtime dependencies 或 GPU 路徑。
 

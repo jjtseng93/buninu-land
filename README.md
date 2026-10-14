@@ -1,6 +1,8 @@
+# Buninu Land
+
 English | [繁體中文](README.zh.md)
 
-# Buninu Land
+A Wayland compositor in JavaScript and WebAssembly for Bun
 
 A Wayland compositor that runs directly in Bun. The first version supports headless software compositing, with animation verified using the system's `weston-simple-shm`, along with Casty's launch, CDP setup, and frame reception flows. There is no build step, npm runtime dependency, or GPU rendering path.
 

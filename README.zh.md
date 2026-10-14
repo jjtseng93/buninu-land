@@ -10,7 +10,7 @@ A Wayland compositor in JavaScript and WebAssembly for Bun
 
 ## 執行
 
-需要 Linux 或 Android 64-bit（aarch64 或 x86_64），以及提供 `Bun.XML`、`Bun.Image`、`bun:ffi` 的 Bun。`process.platform === 'android'` 時載入 Bionic `libc.so`／`__errno`；Linux 優先載入 `libc.so.6`／`__errno_location`。此次實測為 Linux aarch64、Bun 1.4.3-canary.1，尚未在 Android 原生環境驗證。
+需要 Linux 或 Android 64-bit（aarch64 或 x86_64），以及提供 `Bun.XML`、`Bun.Image`、`bun:ffi` 的 Bun。`process.platform === 'android'` 時載入 Bionic `libc.so`／`__errno`；Linux 優先載入 `libc.so.6`／`__errno_location`。已在 Linux aarch64、Bun 1.4.3-canary.1 實測；作者也已完成 Android 原生環境驗證。
 
 直接執行專案入口，就會自動啟動 Casty，再由 Casty 帶起 compositor：
 

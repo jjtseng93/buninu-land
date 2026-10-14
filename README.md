@@ -4,6 +4,8 @@ English | [繁體中文](README.zh.md)
 
 A Wayland compositor in JavaScript and WebAssembly for Bun
 
+> **Warning:** This project is still in very early development. Features are incomplete, and behavior and APIs may change significantly. It is not ready for everyday use.
+
 A Wayland compositor that runs directly in Bun. The first version supports headless software compositing, with animation verified using the system's `weston-simple-shm`, along with Casty's launch, CDP setup, and frame reception flows. There is no build step, npm runtime dependency, or GPU rendering path.
 
 ## Running
@@ -34,8 +36,8 @@ Bun must already be installed. The launcher follows the browser's selection orde
 ```sh
 bun index.js --help       # Or -h
 bun index.js --version    # Or -V
-bun index.js --readme     # Or --docs
-bun index.js --readme-zh
+bun index.js --readme
+bun index.js --readme-zh  # Or --docs
 bun index.js --headless --help
 bun index.js --casty --help
 ```

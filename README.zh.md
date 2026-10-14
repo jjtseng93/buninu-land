@@ -4,6 +4,8 @@
 
 A Wayland compositor in JavaScript and WebAssembly for Bun
 
+> **警告：** 本專案仍處於非常早期的開發階段，功能尚不完整，行為與 API 可能大幅變動，目前不適合日常使用。
+
 用 Bun 直接執行的 Wayland compositor。第一版支援 headless 軟體合成，已用系統的 `weston-simple-shm` 驗證動畫，以及 Casty 的啟動、CDP 設定和畫面接收流程。沒有 build step、npm runtime dependencies 或 GPU 路徑。
 
 ## 執行
@@ -34,8 +36,8 @@ bun x buninu-land
 ```sh
 bun index.js --help       # 或 -h
 bun index.js --version    # 或 -V
-bun index.js --readme     # 或 --docs
-bun index.js --readme-zh
+bun index.js --readme
+bun index.js --readme-zh  # 或 --docs
 bun index.js --headless --help
 bun index.js --casty --help
 ```

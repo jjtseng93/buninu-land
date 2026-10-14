@@ -37,7 +37,7 @@ const RESERVED_FRONTENDS = new Set(["--win32", "--gtk", "--appkit", "--qt"]);
 const INFORMATION = new Map([
   ["--help", "help"], ["-h", "help"], ["-help", "help"],
   ["--version", "version"], ["-V", "version"], ["-version", "version"],
-  ["--readme", "readme"], ["--docs", "readme"],
+  ["--readme", "readme"], ["--docs", "readme-zh"],
   ["--readme-zh", "readme-zh"],
 ]);
 
@@ -95,9 +95,9 @@ Information:
       Show this help & exit
   --version, -V, -version
       Show version+backend info & exit
-  --readme, --docs
+  --readme
       Show ${name}'s README.md & exit
-  --readme-zh
+  --readme-zh, --docs
       Show ${name}'s README.zh.md & exit
 
 Examples:

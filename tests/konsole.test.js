@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { start } from '../compositor.js';
 
 // Exercises Qt's actual xdg-shell/SHM client, not a synthetic protocol fixture.
-// This checks startup and painting only: input is not implemented yet.
+// This test checks startup and painting; window shortcuts have a separate integration test.
 test.skipIf(!Bun.which('konsole'))('Konsole maps and paints through Qt Wayland SHM', async () => {
   const previous = process.env.XDG_RUNTIME_DIR;
   const runtime = mkdtempSync(join(tmpdir(), 'buninu-land-konsole-test-'));

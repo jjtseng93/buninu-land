@@ -120,7 +120,7 @@ References: [npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/),
 
 - `index.js`: the package launcher adapted from the browser. It starts Casty by default and sets `CASTY_BROWSER` to the compositor.
 - `compositor.js`: headless controller, CDP context adapter, lifecycle management, and CLI.
-- `lib/cdp-server.js`: copied unchanged from buninu-browser. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
+- `lib/cdp-server.js`: browser CDP server with two optional raw-input hooks; the unchanged original is in `vendor/buninu-browser/cdp-server.js`, with the diff in `patches/cdp-input.patch`. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
 - `lib/protocol.js`: reads standard XML at runtime with `Bun.XML.parse()`, preserving opcode and argument order.
 - `lib/transport.js`: loads only libc through Bun FFI; handles Unix sockets, `recvmsg`/`SCM_RIGHTS`, nonblocking transport, socket locking, and FD cleanup.
 - `lib/compositor.js`: per-client object tables, SHM pool/buffer lifetimes, surface commits, xdg configure/ack, and frame callbacks.
@@ -130,9 +130,21 @@ At commit time, SHM pixels are copied into compositor-owned memory using libc `p
 
 ## First-version scope
 
-Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, and `wl_seat` v1. SHM supports ARGB8888 and XRGB8888, with basic xdg_toplevel configure/ack, buffer release, and frame callbacks. Windows are centered and stacked, with scheduling at approximately 60 Hz. Each commit still copies the entire buffer; damage is not yet used for partial redraws.
+Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, and `wl_seat` v5 (pointer and keyboard). SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
 
-This is the `weston-simple-shm` milestone, not a complete Wayland compositor. It has no keyboard, mouse, or touch input (seat capabilities are 0), popups, subsurfaces, clipboard, GPU/dmabuf support, window management, or interactive movement/resizing. Maximize/fullscreen requests currently leave sizing to the client; opaque/input regions do not yet affect compositing or input. Casty input is not yet translated into Wayland input events. Comprehensive protocol error and role-lifecycle validation is also incomplete.
+Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Touch, subsurfaces, clipboard, GPU/dmabuf, comprehensive popup constraints, and full protocol/role validation are not implemented.
+
+### Window shortcuts
+
+These three bindings follow [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf), replacing Super with Ctrl+Alt:
+
+| Shortcut | Action |
+| --- | --- |
+| Ctrl+Alt+Arrow | Focus a window in that direction on the current workspace |
+| Ctrl+Alt+W | Request that the focused window close; applications may ask for confirmation |
+| Ctrl+Alt+F | Toggle fullscreen; toggle again to restore the layout |
+
+Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Only these three bindings are currently enabled; F6–F9 and the temporary W/arrow/Tab visual probes are removed. Tab combinations pass through to applications. The tested terminal preserves only Shift for Tab, so Ctrl/Alt+Tab is not used for window switching. Restart the compositor to load changes.
 
 Protocol definitions are preserved unchanged, but their implementation is JavaScript, not a byte-for-byte copy of Hyprland's C++. Not every request in the XML is implemented. See `SOURCES.md` for references.
 

@@ -116,7 +116,7 @@ Linux／Android 常見路徑是 `~/.npm/_npx`，但自訂 npm cache 設定可能
 
 - `index.js`：沿用 browser 的套件 launcher，預設啟動 Casty，設定 `CASTY_BROWSER` 指向 compositor。
 - `compositor.js`：headless controller、CDP context adapter、生命週期與 CLI。
-- `lib/cdp-server.js`：從 buninu-browser 原樣複製，沒有修改。`user-agent.js` 也原樣沿用，因此 CDP 保留 Buninu 的相容識別。
+- `lib/cdp-server.js`：沿用 browser CDP server，增加兩個可選的原始輸入 hook；未修改原版保留於 `vendor/buninu-browser/cdp-server.js`，差異見 `patches/cdp-input.patch`。`user-agent.js` 也原樣沿用，因此 CDP 保留 Buninu 的相容識別。
 - `lib/protocol.js`：使用 `Bun.XML.parse()` 在執行時讀標準 XML，依原始順序處理 opcode／argument。
 - `lib/transport.js`：僅以 Bun FFI 載入 libc；Unix socket、`recvmsg`／`SCM_RIGHTS`、非阻塞傳輸、socket lock、FD 清理。
 - `lib/compositor.js`：每個 client 的 object table、SHM pool／buffer 生命週期、surface commit、xdg configure／ack、frame callback。
@@ -126,9 +126,21 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 ## 第一版範圍
 
-公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v1。SHM 支援 ARGB8888 與 XRGB8888；支援基本 xdg_toplevel configure／ack、buffer release 與 frame callbacks。視窗置中堆疊，約 60 Hz 排程；每次提交仍完整複製 buffer，damage 尚未用於局部重繪。
+公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
-這是 `weston-simple-shm` milestone，尚非完整 Wayland compositor：沒有鍵盤／滑鼠／觸控（seat capabilities 為 0）、popup、subsurface、剪貼簿、GPU／dmabuf、視窗管理或互動式移動／縮放。最大化／全螢幕請求目前採 client 自選尺寸；opaque/input regions 尚不參與合成／輸入。Casty 的輸入也尚未轉成 Wayland input events。尚未完成全面的協定錯誤與角色生命週期驗證。
+Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。尚未支援觸控、subsurface、剪貼簿、GPU／dmabuf、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
+
+### 視窗快捷鍵
+
+以下三組對應 [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf)，將 Super 換成 Ctrl+Alt：
+
+| 快捷鍵 | 操作 |
+| --- | --- |
+| Ctrl+Alt+方向鍵 | 切換到目前工作區中該方向的視窗 |
+| Ctrl+Alt+W | 請求關閉焦點視窗；應用程式仍可能要求確認 |
+| Ctrl+Alt+F | 切換全螢幕，再按一次恢復布局 |
+
+全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。目前只啟用這三組快捷鍵；F6–F9 與 W／方向鍵／Tab 測試圖案均已移除。Tab 組合交回應用程式。實測終端對 Tab 只保留 Shift，所以不使用 Ctrl／Alt+Tab 切換視窗。修改後須重啟 compositor。
 
 協定定義原樣保留，但實作為 JS，並不是 Hyprland C++ 的逐位元複本，也不代表 XML 中每個 request 都已實作。參考來源見 `SOURCES.md`。
 

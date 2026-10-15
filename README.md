@@ -55,11 +55,13 @@ export CASTY_BROWSER="$PWD/compositor.js"
 bunx @drxiaozhi/casty about:blank
 ```
 
-The socket directory is chosen in this order: an explicitly set `$XDG_RUNTIME_DIR`, `$TMPDIR`, then the system temporary directory. The socket is placed directly in that directory, with no additional subdirectory. Its default name is `wayland-buninu`. For example, in another terminal:
+The socket directory is chosen in this order: an explicitly set `$XDG_RUNTIME_DIR`, `$TMPDIR`, then the system temporary directory. The socket is placed directly in that directory, with no additional subdirectory. It selects the first unlocked name: `wayland-buninu`, `wayland-buninu1`, `wayland-buninu2`, and so on. For example, in another terminal:
 
 ```sh
 WAYLAND_DISPLAY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/wayland-buninu" weston-simple-shm
 ```
+
+Without `--socket`, availability is determined by the kernel’s exclusive `flock`, not by whether a socket file exists. Exit or a crash releases the lock, so stale sockets and gaps in the numbering can be reused. An explicit `--socket=NAME` remains fixed and fails if occupied. Use the actual `WAYLAND_DISPLAY` name/path printed at startup for your clients. For multiple headless instances, add `--remote-debugging-port=0` to allocate CDP ports automatically as well.
 
 For Konsole, explicitly select Qt’s Wayland backend with `QT_QPA_PLATFORM=wayland` to avoid starting with the wrong platform backend. In another terminal, use the same socket directory as the compositor:
 
@@ -100,9 +102,9 @@ To run headless directly:
 bun compositor.js --headless --remote-debugging-port=9222
 ```
 
-Choose either a manual headless launch or a Casty-managed launch to avoid occupying the same socket. URLs supplied to Casty do not open web pages; the display shows the Wayland desktop.
+Manual headless and Casty-managed instances can coexist with different automatically allocated sockets. URLs supplied to Casty do not open web pages; the display shows the Wayland desktop.
 
-Run `bun compositor.js --help` for options. The default socket is `wayland-buninu`, and the default display size is 800×600. Use `--socket=NAME` to select another socket or `--remote-debugging-port=0` to select a port automatically. `BUNINU_LOG=1` writes Wayland requests to stderr.
+Run `bun compositor.js --help` for options. Default socket allocation starts at `wayland-buninu`, and the default display size is 800×600. Use `--socket=NAME` to select another socket or `--remote-debugging-port=0` to select a port automatically. `BUNINU_LOG=1` writes Wayland requests to stderr.
 
 ## Updating and clearing cached packages
 

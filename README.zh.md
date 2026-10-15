@@ -55,11 +55,13 @@ export CASTY_BROWSER="$PWD/compositor.js"
 bunx @drxiaozhi/casty about:blank
 ```
 
-Socket 目錄依序採用明確設定的 `$XDG_RUNTIME_DIR`、`$TMPDIR`、系統暫存目錄。Socket 直接放在該目錄，不另加子目錄；名稱預設 `wayland-buninu`。例如另一個終端：
+Socket 目錄依序採用明確設定的 `$XDG_RUNTIME_DIR`、`$TMPDIR`、系統暫存目錄。Socket 直接放在該目錄，不另加子目錄；自動選取第一個未被鎖定的名稱：`wayland-buninu`、`wayland-buninu1`、`wayland-buninu2`，依此類推。例如另一個終端：
 
 ```sh
 WAYLAND_DISPLAY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/wayland-buninu" weston-simple-shm
 ```
+
+未指定 `--socket` 時，用核心的 `flock` 排他鎖判斷是否仍在使用，不以 socket 檔案存在與否判斷。程序退出或崩潰後會釋放鎖，下次啟動可回收殘留 socket 和前面的空缺編號。明確指定 `--socket=NAME` 時不自動改名；被占用會報錯。啟動輸出的 `WAYLAND_DISPLAY` 是本次實際名稱／路徑，客戶端應使用它。多開 headless 時可加 `--remote-debugging-port=0`，讓 CDP port 也自動分配。
 
 啟動 Konsole 時，請加上 `QT_QPA_PLATFORM=wayland` 明確選擇 Qt 的 Wayland 後端，避免選到錯誤的平台後端。在另一個終端使用與 compositor 相同的 socket 目錄：
 
@@ -100,9 +102,9 @@ Casty 傳入的 Chromium 相容 flags（例如 `--no-sandbox`、`--user-data-dir
 bun compositor.js --headless --remote-debugging-port=9222
 ```
 
-手動 headless 與 Casty 自動啟動擇一使用，避免佔用相同 socket。Casty 的 URL 不會開網頁；顯示的是 Wayland 桌面。
+手動 headless 與 Casty 自動啟動可並存，預設會分配不同 socket。Casty 的 URL 不會開網頁；顯示的是 Wayland 桌面。
 
-`bun compositor.js --help` 列出選項。預設 socket 是 `wayland-buninu`，預設畫面 800×600。`--socket=NAME` 可選擇其他 socket；`--remote-debugging-port=0` 自動選 port。`BUNINU_LOG=1` 將 Wayland requests 寫到 stderr。
+`bun compositor.js --help` 列出選項。預設從 `wayland-buninu` 開始尋找可用 socket，預設畫面 800×600。`--socket=NAME` 可選擇其他 socket；`--remote-debugging-port=0` 自動選 port。`BUNINU_LOG=1` 將 Wayland requests 寫到 stderr。
 
 ## 更新與清除快取
 

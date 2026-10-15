@@ -7,11 +7,11 @@ const waitFor=async(predicate,child)=>{const until=Date.now()+25000;while(Date.n
 // Explicit opt-in: these spawn full browser process trees. No downloads/install.
 for(const kind of ['chromium','firefox'])test.skipIf(!process.env.BUNINU_TEST_BROWSERS||!Bun.which(kind))(`${kind}: real Wayland SHM page, keyboard and pointer`,async()=>{
   const old=process.env.XDG_RUNTIME_DIR,dir=mkdtempSync(join(tmpdir(),`buninu-${kind}-test-`));process.env.XDG_RUNTIME_DIR=dir;
-  let app,child;const log=openSync(join(dir,'browser.log'),'w');
+  let app,child,ws;const log=openSync(join(dir,'browser.log'),'w');
   try{
     mkdirSync(join(dir,'profile'));
     writeFileSync(join(dir,'profile/user.js'),'user_pref("browser.shell.checkDefaultBrowser",false);\nuser_pref("browser.startup.homepage_override.mstone","ignore");\nuser_pref("datareporting.policy.dataSubmissionPolicyBypassNotification",true);\n');
-    writeFileSync(join(dir,'page.html'),`<!doctype html><title>Ready</title><style>body{background:#153;color:white}input{font-size:24px}button{position:fixed;left:40px;top:160px;width:140px;height:70px;background:#ff00ff;border:0}</style><h1>Buninu browser input test</h1><input id="text" autofocus oninput="document.title='typed:'+this.value"><button onclick="document.title='clicked:'+document.getElementById('text').value">Click</button>`);
+    writeFileSync(join(dir,'page.html'),`<!doctype html><title>Ready</title><style>body{background:#153;color:white;min-height:4000px;min-width:4000px}input{font-size:24px}button{position:fixed;left:40px;top:160px;width:140px;height:70px;background:#ff00ff;border:0}</style><h1>Buninu browser input test</h1><input id="text" autofocus oninput="document.title='typed:'+this.value"><button onclick="document.title='clicked:'+document.getElementById('text').value">Click</button><script>onscroll=()=>document.title="scroll:"+Math.round(scrollX)+","+Math.round(scrollY)</script>`);
     app=await start(['--remote-debugging-port=0','--window-size=1000,700']);
     const noSandbox=process.env.BUNINU_TEST_CHROMIUM_NO_SANDBOX==='1';
     const cmd=kind==='chromium'?[Bun.which(kind),...(noSandbox?['--no-sandbox']:[]),'--ozone-platform=wayland','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--user-data-dir='+join(dir,'profile')]:[Bun.which(kind),'--no-remote','--profile',join(dir,'profile')];
@@ -34,9 +34,23 @@ for(const kind of ['chromium','firefox'])test.skipIf(!process.env.BUNINU_TEST_BR
     await waitFor(()=>windows().some(w=>w.surface.xdg.toplevel.title?.includes('clicked:wayland')),child);
     expect(app.compositor.frames).toBeGreaterThan(0);
     expect(windows().some(w=>w.surface.xdg.toplevel.title.includes('clicked:wayland'))).toBe(true);
+    // Exercise the same CDP mouseWheel request Casty sends, then observe actual DOM scrolling.
+    ws=new WebSocket(`ws://127.0.0.1:${app.server.port}/devtools/browser/cdp-server`);
+    await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
+    let id=0;const pending=new Map();
+    ws.onmessage=({data})=>{const m=JSON.parse(data),p=pending.get(m.id);if(p){pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};
+    const wheel=(deltaX,deltaY)=>new Promise((resolve,reject)=>{const n=++id;pending.set(n,{resolve,reject});ws.send(JSON.stringify({id:n,method:'Input.dispatchMouseEvent',params:{type:'mouseWheel',x:500,y:400,deltaX,deltaY}}));});
+    const scroll=()=>{const title=windows()[0]?.surface.xdg.toplevel.title??'';const match=/^scroll:(\d+),(\d+)/.exec(title);return match?match.slice(1).map(Number):[0,0];};
+    await wheel(0,100);await waitFor(()=>scroll()[1]>0,child);
+    expect(scroll()[1]).toBeGreaterThan(0);
+    await wheel(0,-100);await waitFor(()=>scroll()[1]===0,child);
+    await wheel(100,0);await waitFor(()=>scroll()[0]>0,child);
+    expect(scroll()[0]).toBeGreaterThan(0);
+    await wheel(-100,0);await waitFor(()=>scroll()[0]===0,child);
     await Bun.write(join(dir,'screen.png'),Buffer.from(await app.context.screenshot(),'base64'));
     console.log(`${kind} verified screenshot and log: ${dir}`);
   }finally{
+    ws?.close();
     if(child){try{process.kill(-child.pid,'SIGTERM');}catch{}child.kill();await Promise.race([child.exited,Bun.sleep(2000)]);if(child.exitCode===null){try{process.kill(-child.pid,'SIGKILL');}catch{}child.kill('SIGKILL');}}
     app?.close();closeSync(log);if(old===undefined)delete process.env.XDG_RUNTIME_DIR;else process.env.XDG_RUNTIME_DIR=old;
   }

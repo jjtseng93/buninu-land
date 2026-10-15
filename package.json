@@ -1,14 +1,36 @@
 {
   "name": "buninu-land",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Wayland compositor in JavaScript and WebAssembly for Bun",
-  "keywords": ["buninu", "wayland", "compositor", "headless", "software-rendering", "bun", "javascript", "webassembly", "wasm", "cdp", "casty", "terminal", "kitty"],
+  "keywords": [
+    "buninu",
+    "wayland",
+    "compositor",
+    "headless",
+    "software-rendering",
+    "bun",
+    "javascript",
+    "webassembly",
+    "wasm",
+    "cdp",
+    "casty",
+    "terminal",
+    "kitty"
+  ],
   "type": "module",
   "main": "./index.js",
-  "bin": { "buninu-land": "./index.js" },
-  "scripts": { "test": "bun test" },
+  "bin": {
+    "buninu-land": "./index.js"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
   "author": "Dr. John (醫者小智)",
   "license": "MIT",
-  "engines": { "bun": ">=1.4.2" },
-  "publishConfig": { "access": "public" }
+  "engines": {
+    "bun": ">=1.4.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

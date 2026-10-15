@@ -69,7 +69,26 @@ export WAYLAND_DISPLAY=wayland-buninu
 QT_QPA_PLATFORM=wayland konsole
 ```
 
-Konsole startup and rendering have been verified. Keyboard and mouse input are not implemented yet, so the window can display output but cannot yet be used as an interactive terminal through Casty.
+Konsole startup, rendering, keyboard input, and mouse input have been verified.
+
+### Chromium and Firefox
+
+In another terminal, use the same socket directory and name as the compositor. The author verified that Chromium only needs `XDG_RUNTIME_DIR`, `WAYLAND_DISPLAY`, and `--ozone-platform=wayland --no-sandbox`; `--disable-gpu` is not required:
+
+```sh
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+export WAYLAND_DISPLAY=wayland-buninu
+chromium --ozone-platform=wayland --no-sandbox
+firefox
+```
+
+Firefox ESR 140.12.0 was also verified to select Wayland automatically when launched as `firefox` with only the `XDG_RUNTIME_DIR` and `WAYLAND_DISPLAY` settings above; neither `MOZ_ENABLE_WAYLAND` nor `GDK_BACKEND` was needed. `DISPLAY` and `XDG_SESSION_TYPE` were unset during this test, and page rendering, text input, and mouse clicks all passed.
+
+The system-installed Chromium 153.0.8010.52 and Firefox ESR 140.12.0 were tested with real windows, software-rendered pages, text input, and mouse clicks. Tests use isolated profiles and do not download or install browsers. WebGL, video, and general website compatibility have not been verified. Close existing browser instances first to avoid forwarding the command to a process on another desktop.
+
+The Chromium command above uses `--no-sandbox`, which disables the browser sandbox and is only suitable for testing trusted content in an isolated environment, not general browsing. Firefox did not require disabling its sandbox. Native Android browser binaries were not verified in this test.
+
+Firefox's subsurfaces now participate in compositing and pointer coordinate handling. `wl_data_device_manager` currently provides the interface GTK needs to initialize and an empty selection; clipboard and drag-and-drop are not implemented.
 
 Casty passes `--remote-debugging-port=0`, allowing the system to select an available port. It reads the actual port from the compositor's DevTools URL output. A manual headless launch defaults to port 9222.
 
@@ -130,9 +149,9 @@ At commit time, SHM pixels are copied into compositor-owned memory using libc `p
 
 ## First-version scope
 
-Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, and `wl_seat` v5 (pointer and keyboard). SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
+Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, and `wl_data_device_manager` v1. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
 
-Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Touch, subsurfaces, clipboard, GPU/dmabuf, comprehensive popup constraints, and full protocol/role validation are not implemented.
+Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, clipboard, drag-and-drop, GPU/dmabuf, comprehensive popup constraints, and full protocol/role validation are not implemented.
 
 ### Window shortcuts
 
@@ -161,6 +180,15 @@ bun test
 ```
 
 Tests cover protocol XML opcodes, FD arguments, fragmented packets, exclusive socket locking, malformed-client isolation, real `weston-simple-shm` animation, and CDP PNG/JPEG output. Tests requiring a Weston client are skipped if it is not installed. Casty integration tests exercise its actual launch/setup/screencast code when the test prerequisites are available; otherwise they are skipped. Dependencies are not installed automatically. Screenshot paths are printed in the test output. Casty tests cover receiving images, but do not automatically verify Kitty graphics display in a terminal.
+
+
+If Chromium/Firefox are already installed, opt into real browser tests with isolated profiles, page text input, and button clicks (no automatic dependency installation):
+
+```sh
+BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
+```
+
+In the tested proot environment, also set `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`; this disables sandboxing only for the test Chromium process. Regular `bun test` skips these two browser tests but verifies subsurface synchronization, buffer snapshots, stacking, and mode changes.
 
 ## Licensing
 

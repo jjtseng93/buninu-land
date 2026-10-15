@@ -27,3 +27,5 @@ See `THIRD_PARTY_NOTICES.md` for verification limits.
 `lib/cdp-server.js` adds two optional raw input hooks to the preserved browser original. The exact diff is in `patches/cdp-input.patch`; mouse/key press and release must reach Wayland independently.
 
 Window management and seat focus code consults Hyprland at the revision above: `src/layout/algorithm/tiled/dwindle/DwindleAlgorithm.cpp`, `src/managers/SeatManager.cpp`, and `src/desktop/state/FocusState.cpp`. The JS implementation is a limited adaptation; the upstream BSD-3-Clause notice is retained in `LICENSES/hyprland.txt`.
+
+Browser compatibility work consulted GTK 3's [`gdk/wayland/gdkdisplay-wayland.c`](https://github.com/GNOME/gtk/blob/gtk-3-24/gdk/wayland/gdkdisplay-wayland.c) for the data-device-manager/seat initialization dependency and Firefox's [`widget/gtk/nsWaylandDisplay.cpp`](https://github.com/mozilla/gecko-dev/blob/master/widget/gtk/nsWaylandDisplay.cpp) for required Wayland globals. No GTK or Firefox source code was copied or linked. Subsurface semantics follow the existing vendored `protocols/wayland.xml`; the implementation is JavaScript.

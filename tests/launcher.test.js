@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { castyCommand, chooseFrontend } from '../index.js';
 import { runtimeDirectory } from '../lib/runtime.js';
+import { version } from '../package.json';
 const entry = Bun.fileURLToPath(new URL('../index.js', import.meta.url));
 const engine = Bun.fileURLToPath(new URL('../compositor.js', import.meta.url));
 
@@ -39,7 +40,7 @@ test('help/version aliases, native placeholders, and headless forwarding', async
     expect(await child.exited).toBe(2); expect(await new Response(child.stderr).text()).toContain('not implemented');
   }
   const child=Bun.spawn([process.execPath,entry,'--headless','-V'],{stdout:'pipe',stderr:'pipe'});
-  expect(await child.exited).toBe(0);expect(await new Response(child.stdout).text()).toContain('buninu-land 0.1.0');
+  expect(await child.exited).toBe(0);expect(await new Response(child.stdout).text()).toContain(`buninu-land ${version}`);
 });
 
 test('socket directory uses explicit XDG, then TMPDIR', () => {

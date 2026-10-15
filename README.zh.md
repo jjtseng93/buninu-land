@@ -69,7 +69,26 @@ export WAYLAND_DISPLAY=wayland-buninu
 QT_QPA_PLATFORM=wayland konsole
 ```
 
-Konsole 的啟動與畫面顯示已驗證。鍵盤與滑鼠輸入尚未實作，因此目前可以顯示輸出，但還不能透過 Casty 互動操作終端。
+Konsole 的啟動、畫面顯示，以及鍵盤與滑鼠輸入已驗證。
+
+### Chromium 與 Firefox
+
+在另一個終端，使用與 compositor 相同的 socket 目錄與名稱。作者實測 Chromium 只需設定 `XDG_RUNTIME_DIR`、`WAYLAND_DISPLAY`，再加上 `--ozone-platform=wayland --no-sandbox` 即可啟動，不需要 `--disable-gpu`：
+
+```sh
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+export WAYLAND_DISPLAY=wayland-buninu
+chromium --ozone-platform=wayland --no-sandbox
+firefox
+```
+
+Firefox ESR 140.12.0 也已實測只需上述 `XDG_RUNTIME_DIR` 和 `WAYLAND_DISPLAY`，直接執行 `firefox` 即可自動使用 Wayland；不需要設定 `MOZ_ENABLE_WAYLAND` 或 `GDK_BACKEND`。此測試未設定 `DISPLAY` 或 `XDG_SESSION_TYPE`，網頁顯示、文字輸入與滑鼠點擊均通過。
+
+已用系統安裝的 Chromium 153.0.8010.52 與 Firefox ESR 140.12.0 驗證真實視窗、網頁軟體渲染、文字輸入和滑鼠點擊。測試使用獨立 profile，沒有下載或安裝瀏覽器；未驗證 WebGL、影片或所有網站。若瀏覽器已在其他桌面執行，請先關閉，避免命令被轉交既有程序。
+
+上述 Chromium 指令中的 `--no-sandbox` 會停用瀏覽器沙箱，只適合隔離環境中的受信任內容測試，不建議用於一般瀏覽。Firefox 不需停用 sandbox。Android 原生瀏覽器執行檔尚未在本次測試中驗證。
+
+Firefox 使用的 subsurface 已接入合成與滑鼠座標處理。`wl_data_device_manager` 目前僅提供 GTK 初始化所需的介面及空選取狀態；剪貼簿與拖放仍未實作。
 
 Casty 會傳入 `--remote-debugging-port=0`，由系統選擇可用 port；Casty 從 compositor 輸出的 DevTools URL 取得實際 port。手動 headless 啟動預設使用 9222。
 
@@ -126,9 +145,9 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 ## 第一版範圍
 
-公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
+公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
-Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。尚未支援觸控、subsurface、剪貼簿、GPU／dmabuf、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
+Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、剪貼簿與拖放、GPU／dmabuf、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 
 ### 視窗快捷鍵
 
@@ -157,6 +176,15 @@ bun test
 ```
 
 測試包括協定 XML opcode、FD 參數、分段封包、socket 排他鎖、無效 client 隔離，以及真實 `weston-simple-shm` 動畫和 CDP PNG／JPEG。若沒有已安裝的 weston client，相關測試跳過。Casty 整合測試會在測試所需條件可用時，執行其真實 launch/setup/screencast 程式，否則跳過；不自動安裝依賴。測試的截圖路徑會印在輸出中。Casty 測試涵蓋收到影像的流程，並未自動驗證終端 Kitty 顯示。
+
+
+若系統已安裝 Chromium／Firefox，可額外執行真實瀏覽器測試（獨立 profile、驗證網頁文字輸入與點擊，不自動安裝依賴）：
+
+```sh
+BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
+```
+
+在本次 proot 環境，測試指令還需加上 `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`；此變數只停用測試用 Chromium 的 sandbox。一般 `bun test` 會跳過這兩項瀏覽器測試，但會驗證 subsurface 同步、buffer 快照、堆疊和模式切換。
 
 ## 授權
 

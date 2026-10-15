@@ -2,7 +2,7 @@
 
 No packages were installed for this implementation.
 
-- `lib/cdp-server.js`, `lib/user-agent.js`, `lib/frame.js`: byte-for-byte copies of `../buninu-browser/lib/cdp-server.js`, `lib/user-agent.js`, and `lib/paint/frame.js`. Source checkout HEAD: `a2b9c2ca546b97dc92c5afa11bdab34513d55b11`. Copies reflect the actual workspace files; SHA-256 values are recorded in `vendor-manifest.json`. MIT notice retained in `LICENSE`.
+- `vendor/buninu-browser/cdp-server.js`, `lib/user-agent.js`, `lib/frame.js`: byte-for-byte copies of `../buninu-browser/lib/cdp-server.js`, `lib/user-agent.js`, and `lib/paint/frame.js`. Source checkout HEAD: `a2b9c2ca546b97dc92c5afa11bdab34513d55b11`. Copies reflect the actual workspace files; SHA-256 values are recorded in `vendor-manifest.json`. MIT notice retained in `LICENSE`.
 - `vendor/canvaskit/canvaskit.js` and `canvaskit.wasm`: byte-for-byte copies from `../buninu-browser/usr/lib/canvaskit/`. License retained alongside them.
 - `protocols/wayland.xml`: copied unchanged from `/usr/share/wayland/wayland.xml`.
 - `protocols/xdg-shell.xml`: copied unchanged from `/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml`.
@@ -23,3 +23,7 @@ diff and original/local hashes. Notices for zlib and libjpeg-turbo now use the
 revisions pinned in Skia's DEPS; additional compiled-runtime notices use the
 Emscripten 4.0.7 source tree referenced by Skia's wasm build configuration.
 See `THIRD_PARTY_NOTICES.md` for verification limits.
+
+`lib/cdp-server.js` adds two optional raw input hooks to the preserved browser original. The exact diff is in `patches/cdp-input.patch`; mouse/key press and release must reach Wayland independently.
+
+Window management and seat focus code consults Hyprland at the revision above: `src/layout/algorithm/tiled/dwindle/DwindleAlgorithm.cpp`, `src/managers/SeatManager.cpp`, and `src/desktop/state/FocusState.cpp`. The JS implementation is a limited adaptation; the upstream BSD-3-Clause notice is retained in `LICENSES/hyprland.txt`.

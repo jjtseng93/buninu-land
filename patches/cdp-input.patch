@@ -1,0 +1,18 @@
+--- vendor/buninu-browser/cdp-server.js
++++ lib/cdp-server.js
+@@ -685,6 +685,7 @@
+       if (params.objectId) state.objects.delete(params.objectId);
+       return {};
+     case "Input.dispatchMouseEvent": {
++      if (ctx.dispatchMouseEvent) { await ctx.dispatchMouseEvent(params); return {}; }
+       const target = getSessionTarget(state, sessionId);
+       if (params.type === "mouseMoved") {
+         await ctx.move?.(params.x, params.y);
+@@ -713,6 +714,7 @@
+       return {};
+     }
+     case "Input.dispatchKeyEvent": {
++      if (ctx.dispatchKeyEvent) { await ctx.dispatchKeyEvent(params); return {}; }
+       const target = getSessionTarget(state, sessionId);
+       const key = params.key ?? params.text ?? "";
+       const signature = `${params.code ?? key}:${params.modifiers ?? 0}`;

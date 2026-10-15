@@ -42,7 +42,7 @@ test.skipIf(!Bun.which('weston-simple-shm'))('weston-simple-shm animates and CDP
 }, 15000);
 
 test.skipIf(!existsSync(new URL('../../buninu-browser/lib/cdp-server.js', import.meta.url)))('CDP server is byte-for-byte unchanged from buninu-browser', () => {
-  expect(readFileSync(new URL('../lib/cdp-server.js',import.meta.url))).toEqual(readFileSync(new URL('../../buninu-browser/lib/cdp-server.js',import.meta.url)));
+  expect(readFileSync(new URL('../vendor/buninu-browser/cdp-server.js',import.meta.url))).toEqual(readFileSync(new URL('../../buninu-browser/lib/cdp-server.js',import.meta.url)));
 });
 
 // Pins copied assets even when the sibling source checkout is unavailable.

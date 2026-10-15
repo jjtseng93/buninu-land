@@ -8,7 +8,7 @@ The following notices apply to the respective bundled components.
 Source: https://github.com/jjtseng93/buninu-browser
 Copyright (c) 2026 Dr. John (醫者小智). MIT; see `LICENSES/buninu-browser.txt`.
 
-`lib/cdp-server.js`, `lib/user-agent.js`, and `lib/frame.js` are unchanged copies.
+`vendor/buninu-browser/cdp-server.js`, `lib/user-agent.js`, and `lib/frame.js` are unchanged copies. `lib/cdp-server.js` adds two optional raw input hooks; see `patches/cdp-input.patch`.
 `index.js` is adapted from its launcher: package/engine names and help text are
 changed for Wayland, and Chinese README aliases are added; frontend dispatch, argument forwarding, the npx → bunx →
 bun x selection, child-process handling, and reserved native frontend commands
@@ -90,3 +90,7 @@ Bun and libc are provided by the host, not bundled. `@drxiaozhi/casty` is launch
 as a separate package using npx, bunx, or bun x; its source is not bundled.
 Those launchers may download Casty if it is not already installed or cached.
 Bun.Image is a Bun runtime API, not a separately distributed native addon.
+
+## Hyprland window management and input
+
+The JS Dwindle-style layout and seat/focus implementation reference Hyprland (Copyright 2022–2026 vaxerski and contributors), BSD-3-Clause. See `LICENSES/hyprland.txt` and `SOURCES.md` for the source revision and paths. No Hyprland native library is linked. This implements a subset, not full Hyprland compatibility.

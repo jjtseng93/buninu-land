@@ -34,8 +34,12 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
     const renderer = await createRenderer(compositor);
     const context = {
       onFrame(fn) { compositor.onFrame = fn; },
+      dispatchMouseEvent: p => compositor.input.mouse(p),
+      dispatchKeyEvent: p => compositor.input.key(p),
+      type: text => compositor.input.type(text),
       navigate() {}, title() { return 'Buninu Land'; },
-      resize(w,h) { if (!validSize(w,h)) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.onFrame?.(); },
+      resize(w,h) { if (!validSize(w,h)) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.wm.layout();
+        for(const c of compositor.clients)for(const o of c.objects.values())if(o.iface==='wl_output'){c.event(o,'mode',3,w,h,60000);if(o.version>=2)c.event(o,'done');} },
       screenshot: options => renderer.screenshot(options),
       close,
     };

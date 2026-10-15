@@ -61,6 +61,16 @@ Socket 目錄依序採用明確設定的 `$XDG_RUNTIME_DIR`、`$TMPDIR`、系統
 WAYLAND_DISPLAY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/wayland-buninu" weston-simple-shm
 ```
 
+啟動 Konsole 時，請加上 `QT_QPA_PLATFORM=wayland` 明確選擇 Qt 的 Wayland 後端，避免選到錯誤的平台後端。在另一個終端使用與 compositor 相同的 socket 目錄：
+
+```sh
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+export WAYLAND_DISPLAY=wayland-buninu
+QT_QPA_PLATFORM=wayland konsole
+```
+
+Konsole 的啟動與畫面顯示已驗證。鍵盤與滑鼠輸入尚未實作，因此目前可以顯示輸出，但還不能透過 Casty 互動操作終端。
+
 Casty 會傳入 `--remote-debugging-port=0`，由系統選擇可用 port；Casty 從 compositor 輸出的 DevTools URL 取得實際 port。手動 headless 啟動預設使用 9222。
 
 Casty 傳入的 Chromium 相容 flags（例如 `--no-sandbox`、`--user-data-dir`、`--disable-*`）目前忽略；`--remote-debugging-port` 與 `--window-size` 會實際生效。

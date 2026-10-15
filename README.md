@@ -61,6 +61,16 @@ The socket directory is chosen in this order: an explicitly set `$XDG_RUNTIME_DI
 WAYLAND_DISPLAY="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/wayland-buninu" weston-simple-shm
 ```
 
+For Konsole, explicitly select Qt’s Wayland backend with `QT_QPA_PLATFORM=wayland` to avoid starting with the wrong platform backend. In another terminal, use the same socket directory as the compositor:
+
+```sh
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+export WAYLAND_DISPLAY=wayland-buninu
+QT_QPA_PLATFORM=wayland konsole
+```
+
+Konsole startup and rendering have been verified. Keyboard and mouse input are not implemented yet, so the window can display output but cannot yet be used as an interactive terminal through Casty.
+
 Casty passes `--remote-debugging-port=0`, allowing the system to select an available port. It reads the actual port from the compositor's DevTools URL output. A manual headless launch defaults to port 9222.
 
 Chromium compatibility flags passed by Casty, such as `--no-sandbox`, `--user-data-dir`, and `--disable-*`, are currently ignored. `--remote-debugging-port` and `--window-size` take effect.

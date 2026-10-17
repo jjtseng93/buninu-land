@@ -1,6 +1,6 @@
 {
   "name": "buninu-land",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A Wayland compositor in JavaScript and WebAssembly for Bun",
   "keywords": [
     "buninu",

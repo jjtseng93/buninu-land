@@ -171,6 +171,10 @@ Protocol definitions are preserved unchanged, but their implementation is JavaSc
 
 ## Frame conversion costs
 
+The renderer caches CanvasKit images for immutable SHM snapshots, reuses one full-size and one preview drawing surface, and reuses composed images while pixels, geometry, stacking, cursor and viewport remain unchanged. Previews reuse an existing matching full image without forcing a full-size repaint. This retains drawing buffers between captures; replaced images and resized buffers are released, and shutdown releases the renderer's resources.
+
+Casty zoom is applied through CDP `deviceScaleFactor`: layout and input retain logical coordinates, while screenshots use physical pixel dimensions. Zoom below 1 uses linear image sampling to reduce aliasing when shrinking content. These changes are confined to land; Casty and buninu-browser remain unchanged.
+
 PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base64 → Casty decoding. Using CanvasKit's PNG encoder directly avoids intermediate RGBA/BMP conversion.
 
 JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP wrapping → Bun.Image decoding/encoding → CDP base64 → Casty decoding. BMP wrapping adds a full-frame copy, and Bun.Image then parses the BMP. This cost comes from reusing the browser's encoding utilities; a future encoding path should accept raw pixels directly. The existing CanvasKit WASM's JPEG encoder does not produce output, so it cannot directly replace this path. Casty also receives low-resolution change notifications before requesting full screenshots, adding encoding work.

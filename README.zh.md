@@ -167,6 +167,10 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 
 ## 畫面轉換成本
 
+Renderer 會快取不可變 SHM 快照對應的 CanvasKit image，重用一個完整尺寸及一個預覽繪圖 surface，並在像素、位置、堆疊、游標及 viewport 未變時重用合成結果。預覽可以使用已存在且符合場景的完整影像，但不會為了預覽強制重畫完整尺寸。代價是截圖之間保留繪圖記憶體；過期 image、尺寸變更的 buffer 及關閉時的 renderer 資源會釋放。
+
+Casty zoom 透過 CDP `deviceScaleFactor` 套用：排版與輸入保留邏輯座標，截圖則使用實際像素尺寸。Zoom 小於 1 時使用線性取樣，減少縮小內容造成的鋸齒與筆畫遺失。這些修改只在 land，Casty 與 buninu-browser 維持不變。
+
 PNG：SHM BGRA → CanvasKit 軟體合成 → CanvasKit PNG → CDP base64 → Casty 解碼。直接使用 CanvasKit 的 PNG encoder，避免中間的 RGBA／BMP 轉換。
 
 JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包裝 → Bun.Image 解碼／編碼 → CDP base64 → Casty 解碼。BMP 包裝會額外複製完整畫面，Bun.Image 再解析 BMP；這是沿用 browser 編碼工具的成本，後續應改為能接收 raw pixels 的編碼路徑。現有 CanvasKit WASM 的 JPEG encoder 無法產生結果，因此不能直接替換這段。Casty 本身也會先取得低解析度變動通知，再要求完整截圖，會有額外編碼工作。

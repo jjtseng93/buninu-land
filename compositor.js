@@ -34,17 +34,17 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
     catch (error) { if (requestedDisplay !== null || error.code !== 'EADDRINUSE') throw error; }
   }
   if (!compositor) throw Error('No free Wayland socket among wayland-buninu through wayland-buninu999');
-  let server, shutdown;
-  const close = () => { if (!compositor.closed) { compositor.closed = true; server?.stop(true); compositor.close(); if (shutdown) { process.removeListener('SIGINT', shutdown); process.removeListener('SIGTERM', shutdown); } } };
+  let server, shutdown, renderer;
+  const close = () => { if (!compositor.closed) { compositor.closed = true; server?.stop(true); renderer?.close(); compositor.close(); if (shutdown) { process.removeListener('SIGINT', shutdown); process.removeListener('SIGTERM', shutdown); } } };
   try {
-    const renderer = await createRenderer(compositor);
+    renderer = await createRenderer(compositor);
     const context = {
       onFrame(fn) { compositor.onFrame = fn; },
       dispatchMouseEvent: p => compositor.input.mouse(p),
       dispatchKeyEvent: p => compositor.input.key(p),
       type: text => compositor.input.type(text),
       navigate() {}, title() { return 'Buninu Land'; },
-      resize(w,h) { if (!validSize(w,h)) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.wm.layout();
+      resize(w,h,deviceScaleFactor=1) { if (!validSize(w,h) || !Number.isFinite(deviceScaleFactor) || deviceScaleFactor<=0 || deviceScaleFactor>8 || !validSize(Math.max(1,Math.floor(w*deviceScaleFactor)),Math.max(1,Math.floor(h*deviceScaleFactor)))) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.deviceScaleFactor=deviceScaleFactor; compositor.wm.layout();
         for(const c of compositor.clients)for(const o of c.objects.values())if(o.iface==='wl_output'){c.event(o,'mode',3,w,h,60000);if(o.version>=2)c.event(o,'done');} },
       screenshot: options => renderer.screenshot(options),
       close,

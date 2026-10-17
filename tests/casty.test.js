@@ -16,7 +16,8 @@ for (const fallback of [false, true]) test.skipIf(!available)(`Casty launches an
   let browser, client, capture, weston;
   try {
     browser = await launchChrome({ userDataDir: join(runtime, 'profile'), windowSize: { width: 640, height: 480 } });
-    ({ client } = await setupPage(browser, { width: 640, height: 480 }));
+    // Exercise reduced zoom through the actual Casty setup and JPEG stream.
+    ({ client } = await setupPage(browser, { width: 640, height: 480, zoom: fallback ? .5 : 1 }));
     await client.send('Page.navigate', { url: 'about:blank' });
     // With XDG_RUNTIME_DIR set, clients resolve the relative display name.
     // Without it, an absolute display path supports the TMPDIR fallback.

@@ -173,7 +173,20 @@ Protocol definitions are preserved unchanged, but their implementation is JavaSc
 
 The renderer caches CanvasKit images for immutable SHM snapshots, reuses one full-size and one preview drawing surface, and reuses composed images while pixels, geometry, stacking, cursor and viewport remain unchanged. Previews reuse an existing matching full image without forcing a full-size repaint. This retains drawing buffers between captures; replaced images and resized buffers are released, and shutdown releases the renderer's resources.
 
-Casty zoom is applied through CDP `deviceScaleFactor`: layout and input retain logical coordinates, while screenshots use physical pixel dimensions. Zoom below 1 uses linear image sampling to reduce aliasing when shrinking content. These changes are confined to land; Casty and buninu-browser remain unchanged.
+Casty zoom is applied through CDP `deviceScaleFactor`: layout and input retain logical coordinates, while screenshots use physical pixel dimensions. For clients using the resampling fallback, zoom below 1 uses linear image sampling to reduce aliasing when shrinking content. These changes are confined to land; Casty and buninu-browser remain unchanged.
+
+Land advertises `wp_fractional_scale_manager_v1` and `wp_viewporter`. Supporting clients can render buffers at the requested scale while keeping logical window dimensions and input coordinates. Viewport source/destination state is committed with the surface, including synchronized subsurfaces; native-size fractional buffers are aligned to physical pixels to avoid filtering them again. Clients that do not use fractional scaling retain the existing resampling fallback.
+
+Firefox scaling has been checked in two versions:
+
+- **Firefox 153.5.0 ESR:** the running session at Casty zoom 60% used a 667 × 810 logical viewport and a 400 × 486 output. Firefox's shared pixel buffer also contained 400 × 486 pixels; 99.95% of its RGB pixels matched the captured PNG exactly. This confirms that the inspected output preserves the client raster instead of shrinking a larger image. Text looked clearer in the PNG; terminal presentation was not measured, and this was not a repeat of the full browser input suite.
+- **Firefox 140.12.0 ESR:** fractional scaling was disabled by default in our test. Setting `widget.wayland.fractional-scale.enabled=true` in `about:config` and restarting enabled native-size content buffers at 60%. Typing, clicking and scrolling passed in an isolated profile. GTK window decorations still used the fallback path in that test.
+
+Clients that do not use fractional scaling still display and receive input through the original logical coordinates, but shrinking their raster can remain blurry. Support can differ between surfaces within one application. Casty zoom and Firefox's own page zoom are separate; page zoom can still make text very small even with native-size buffers.
+
+Restart land and its clients after upgrading to expose the new protocols. If Firefox still uses the fallback, check `widget.wayland.fractional-scale.enabled` in `about:config`. Land does not modify Firefox preferences automatically.
+
+To repeat the installed Firefox test at 60% in an isolated profile with fractional scaling explicitly enabled (this does not test the browser's default preference): `BUNINU_TEST_BROWSERS=1 BUNINU_TEST_FRACTIONAL_SCALE=1 bun test tests/browser-clients.test.js -t firefox`.
 
 PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base64 → Casty decoding. Using CanvasKit's PNG encoder directly avoids intermediate RGBA/BMP conversion.
 

@@ -44,7 +44,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
       dispatchKeyEvent: p => compositor.input.key(p),
       type: text => compositor.input.type(text),
       navigate() {}, title() { return 'Buninu Land'; },
-      resize(w,h,deviceScaleFactor=1) { if (!validSize(w,h) || !Number.isFinite(deviceScaleFactor) || deviceScaleFactor<=0 || deviceScaleFactor>8 || !validSize(Math.max(1,Math.floor(w*deviceScaleFactor)),Math.max(1,Math.floor(h*deviceScaleFactor)))) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.deviceScaleFactor=deviceScaleFactor; compositor.wm.layout();
+      resize(w,h,deviceScaleFactor=1) { if (!validSize(w,h) || !Number.isFinite(deviceScaleFactor) || deviceScaleFactor<=0 || deviceScaleFactor>8 || !validSize(Math.max(1,Math.floor(w*deviceScaleFactor)),Math.max(1,Math.floor(h*deviceScaleFactor)))) throw Error('Invalid viewport'); compositor.width=w; compositor.height=h; compositor.deviceScaleFactor=deviceScaleFactor; compositor.updatePreferredScale(); compositor.wm.layout();
         for(const c of compositor.clients)for(const o of c.objects.values())if(o.iface==='wl_output'){c.event(o,'mode',3,w,h,60000);if(o.version>=2)c.event(o,'done');} },
       screenshot: options => renderer.screenshot(options),
       close,

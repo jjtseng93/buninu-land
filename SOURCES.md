@@ -6,6 +6,8 @@ No packages were installed for this implementation.
 - `vendor/canvaskit/canvaskit.js` and `canvaskit.wasm`: byte-for-byte copies from `../buninu-browser/usr/lib/canvaskit/`. License retained alongside them.
 - `protocols/wayland.xml`: copied unchanged from `/usr/share/wayland/wayland.xml`.
 - `protocols/xdg-shell.xml`: copied unchanged from `/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml`.
+- `protocols/viewporter.xml`: copied unchanged from `/usr/share/wayland-protocols/stable/viewporter/viewporter.xml`.
+- `protocols/fractional-scale-v1.xml`: copied unchanged from `/usr/share/wayland-protocols/staging/fractional-scale/fractional-scale-v1.xml`.
 - Protocol XML files contain their own copyright and permission notices.
 
 The requested neighboring repository is named `../Hyprland`, rather than `../Hyperland`. Its checkout HEAD at implementation time was `e2ad066c9ffd45ddfbe4dc76d2de16b382fbe3eb`. Its `CMakeLists.txt` likewise consumes the system wayland.xml and stable/xdg-shell XML. Its `src/protocols/core/Shm.cpp`, core compositor structure, and `src/protocols/XDGShell.cpp` were consulted for pool lifetime, validation, and configure ordering. No C++ was built or linked. The first milestone implements a subset of these protocols in JS; it does not claim full Hyprland behavior.
@@ -31,3 +33,5 @@ Window management and seat focus code consults Hyprland at the revision above: `
 Browser compatibility work consulted GTK 3's [`gdk/wayland/gdkdisplay-wayland.c`](https://github.com/GNOME/gtk/blob/gtk-3-24/gdk/wayland/gdkdisplay-wayland.c) for the data-device-manager/seat initialization dependency and Firefox's [`widget/gtk/nsWaylandDisplay.cpp`](https://github.com/mozilla/gecko-dev/blob/master/widget/gtk/nsWaylandDisplay.cpp) for required Wayland globals. No GTK or Firefox source code was copied or linked. Subsurface semantics follow the existing vendored `protocols/wayland.xml`; the implementation is JavaScript.
 
 Pointer scroll framing was checked against GTK 3's [`gdk/wayland/gdkdevice-wayland.c`](https://github.com/GNOME/gtk/blob/gtk-3-24/gdk/wayland/gdkdevice-wayland.c), particularly `gdk_wayland_seat_flush_frame_event`: motion/enter events and axis events must reach separate frames for this client path. No GTK source code was copied.
+
+Fractional scaling follows the design in the neighboring Hyprland checkout: `src/protocols/FractionalScale.cpp`, `src/desktop/view/WLSurface.cpp`, and `src/render/ElementRenderer.cpp`. The JS implementation uses upstream fractional-scale and viewporter XML, separates logical surface geometry from buffer dimensions, and avoids resampling matching physical-size buffers. No native code is linked.

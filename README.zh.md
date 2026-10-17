@@ -169,7 +169,20 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 
 Renderer 會快取不可變 SHM 快照對應的 CanvasKit image，重用一個完整尺寸及一個預覽繪圖 surface，並在像素、位置、堆疊、游標及 viewport 未變時重用合成結果。預覽可以使用已存在且符合場景的完整影像，但不會為了預覽強制重畫完整尺寸。代價是截圖之間保留繪圖記憶體；過期 image、尺寸變更的 buffer 及關閉時的 renderer 資源會釋放。
 
-Casty zoom 透過 CDP `deviceScaleFactor` 套用：排版與輸入保留邏輯座標，截圖則使用實際像素尺寸。Zoom 小於 1 時使用線性取樣，減少縮小內容造成的鋸齒與筆畫遺失。這些修改只在 land，Casty 與 buninu-browser 維持不變。
+Casty zoom 透過 CDP `deviceScaleFactor` 套用：排版與輸入保留邏輯座標，截圖則使用實際像素尺寸。使用縮圖 fallback 的客戶端在 zoom 小於 1 時採用線性取樣，減少縮小內容造成的鋸齒與筆畫遺失。這些修改只在 land，Casty 與 buninu-browser 維持不變。
+
+Land 提供 `wp_fractional_scale_manager_v1` 與 `wp_viewporter`。支援的客戶端可以依指定比例繪製 buffer，同時保留視窗邏輯尺寸及輸入座標。Viewport 裁切／目標尺寸隨 surface commit 套用，也支援同步子視窗；符合實際像素尺寸的 fractional buffer 會對齊像素，避免再次插值。不支援的客戶端仍使用原本的縮圖路徑。
+
+已檢查兩個 Firefox 版本的縮放行為：
+
+- **Firefox 153.5.0 ESR：**執行中的 Casty 60% 工作階段使用 667 × 810 邏輯 viewport，輸出為 400 × 486。Firefox 共享像素 buffer 也包含 400 × 486 像素，其中 99.95% 的 RGB 像素與擷取的 PNG 完全相同，確認此次輸出保留客戶端像素，而非再縮小較大的影像。PNG 中的文字較清楚；未量測終端最後顯示的效果，此次也未重跑整套瀏覽器輸入測試。
+- **Firefox 140.12.0 ESR：**測試時預設未啟用 fractional scaling。在 `about:config` 設定 `widget.wayland.fractional-scale.enabled=true` 並重啟後，已於獨立 profile 驗證 60% 下的目標解析度網頁 buffer、文字輸入、點擊與捲動。該次測試的 GTK 視窗裝飾仍走 fallback。
+
+不使用 fractional scaling 的客戶端仍能顯示並按原本邏輯座標接受輸入，但縮小其點陣影像仍可能模糊。同一應用程式內的不同 surface 也可能採用不同路徑。Casty zoom 與 Firefox 自己的網頁 zoom 是分開的；即使 buffer 符合輸出解析度，網頁 zoom 仍可能讓文字很小。
+
+更新後需重啟 land 及客戶端以使用新協定。若 Firefox 仍走 fallback，可在 `about:config` 檢查 `widget.wayland.fractional-scale.enabled`；land 不會自動修改 Firefox 偏好設定。
+
+可用已安裝的 Firefox 重跑 60% 獨立 profile 測試；此測試會明確啟用 fractional scaling，不用來驗證瀏覽器的預設值：`BUNINU_TEST_BROWSERS=1 BUNINU_TEST_FRACTIONAL_SCALE=1 bun test tests/browser-clients.test.js -t firefox`。
 
 PNG：SHM BGRA → CanvasKit 軟體合成 → CanvasKit PNG → CDP base64 → Casty 解碼。直接使用 CanvasKit 的 PNG encoder，避免中間的 RGBA／BMP 轉換。
 

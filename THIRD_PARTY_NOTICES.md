@@ -94,3 +94,5 @@ Bun.Image is a Bun runtime API, not a separately distributed native addon.
 ## Hyprland window management and input
 
 The JS Dwindle-style layout and seat/focus implementation reference Hyprland (Copyright 2022–2026 vaxerski and contributors), BSD-3-Clause. See `LICENSES/hyprland.txt` and `SOURCES.md` for the source revision and paths. No Hyprland native library is linked. This implements a subset, not full Hyprland compatibility.
+
+The vendored `protocols/viewporter.xml` and `protocols/fractional-scale-v1.xml` retain their upstream copyright and MIT-style permission notices in full. Sources and hashes are recorded in `SOURCES.md` and `vendor-manifest.json`.

@@ -6,13 +6,15 @@ import {start} from '../compositor.js';
 const waitFor=async(predicate,child)=>{const until=Date.now()+25000;while(Date.now()<until){if(child.exitCode!==null)throw Error(`Browser exited ${child.exitCode}`);if(predicate())return;await Bun.sleep(30);}throw Error('Browser did not reach expected state');};
 // Explicit opt-in: these spawn full browser process trees. No downloads/install.
 for(const kind of ['chromium','firefox'])test.skipIf(!process.env.BUNINU_TEST_BROWSERS||!Bun.which(kind))(`${kind}: real Wayland SHM page, keyboard and pointer`,async()=>{
+  const fractional=kind==='firefox'&&process.env.BUNINU_TEST_FRACTIONAL_SCALE==='1';
   const old=process.env.XDG_RUNTIME_DIR,dir=mkdtempSync(join(tmpdir(),`buninu-${kind}-test-`));process.env.XDG_RUNTIME_DIR=dir;
   let app,child,ws;const log=openSync(join(dir,'browser.log'),'w');
   try{
     mkdirSync(join(dir,'profile'));
-    writeFileSync(join(dir,'profile/user.js'),'user_pref("browser.shell.checkDefaultBrowser",false);\nuser_pref("browser.startup.homepage_override.mstone","ignore");\nuser_pref("datareporting.policy.dataSubmissionPolicyBypassNotification",true);\n');
+    writeFileSync(join(dir,'profile/user.js'),(fractional?'user_pref("widget.wayland.fractional-scale.enabled",true);\n':'')+'user_pref("browser.shell.checkDefaultBrowser",false);\nuser_pref("browser.startup.homepage_override.mstone","ignore");\nuser_pref("datareporting.policy.dataSubmissionPolicyBypassNotification",true);\n');
     writeFileSync(join(dir,'page.html'),`<!doctype html><title>Ready</title><style>body{background:#153;color:white;min-height:4000px;min-width:4000px}input{font-size:24px}button{position:fixed;left:40px;top:160px;width:140px;height:70px;background:#ff00ff;border:0}</style><h1>Buninu browser input test</h1><input id="text" autofocus oninput="document.title='typed:'+this.value"><button onclick="document.title='clicked:'+document.getElementById('text').value">Click</button><script>onscroll=()=>document.title="scroll:"+Math.round(scrollX)+","+Math.round(scrollY)</script>`);
     app=await start(['--remote-debugging-port=0','--window-size=1000,700']);
+    if(fractional)app.context.resize(600,1200,.6);
     const noSandbox=process.env.BUNINU_TEST_CHROMIUM_NO_SANDBOX==='1';
     const cmd=kind==='chromium'?[Bun.which(kind),...(noSandbox?['--no-sandbox']:[]),'--ozone-platform=wayland','--disable-gpu','--disable-dev-shm-usage','--no-first-run','--user-data-dir='+join(dir,'profile')]:[Bun.which(kind),'--no-remote','--profile',join(dir,'profile')];
     cmd.push('file://'+join(dir,'page.html'));
@@ -27,7 +29,7 @@ for(const kind of ['chromium','firefox'])test.skipIf(!process.env.BUNINU_TEST_BR
       for(const s of app.compositor.wm.renderSurfaces()){
         const b=s.pixels;if(!b)continue;let minX=b.width,minY=b.height,maxX=-1,maxY=-1;
         for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){const i=y*b.stride+x*4;if(b.bytes[i]===255&&b.bytes[i+1]===0&&b.bytes[i+2]===255){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}}
-        if(maxX-minX>50&&maxY-minY>30){const o=app.compositor.wm.origin(s);point={x:o.x+(minX+maxX)/2/s.scale,y:o.y+(minY+maxY)/2/s.scale};return true;}
+        if(maxX-minX>50&&maxY-minY>30){const o=app.compositor.wm.origin(s);point={x:o.x+(minX+maxX)/2*(s.viewportDestination?.[0]??b.width/s.scale)/b.width,y:o.y+(minY+maxY)/2*(s.viewportDestination?.[1]??b.height/s.scale)/b.height};return true;}
       }return false;
     },child);
     for(const type of ['mousePressed','mouseReleased'])app.context.dispatchMouseEvent({type,...point,button:'left'});
@@ -47,6 +49,13 @@ for(const kind of ['chromium','firefox'])test.skipIf(!process.env.BUNINU_TEST_BR
     await wheel(100,0);await waitFor(()=>scroll()[0]>0,child);
     expect(scroll()[0]).toBeGreaterThan(0);
     await wheel(-100,0);await waitFor(()=>scroll()[0]===0,child);
+    if(fractional){
+      const surface=app.compositor.wm.renderSurfaces().find(s=>s.fractionalScale&&s.viewportDestination);
+      expect(surface).toBeDefined();
+      expect(surface.pixels.width).toBe(Math.round(surface.viewportDestination[0]*.6));
+      expect(surface.pixels.height).toBe(Math.round(surface.viewportDestination[1]*.6));
+      expect(app.compositor.width).toBe(600);expect(app.compositor.height).toBe(1200);
+    }
     await Bun.write(join(dir,'screen.png'),Buffer.from(await app.context.screenshot(),'base64'));
     console.log(`${kind} verified screenshot and log: ${dir}`);
   }finally{

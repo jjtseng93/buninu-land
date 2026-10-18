@@ -188,6 +188,12 @@ PNG：SHM BGRA → CanvasKit 軟體合成 → CanvasKit PNG → CDP base64 → C
 
 JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包裝 → Bun.Image 解碼／編碼 → CDP base64 → Casty 解碼。BMP 包裝會額外複製完整畫面，Bun.Image 再解析 BMP；這是沿用 browser 編碼工具的成本，後續應改為能接收 raw pixels 的編碼路徑。現有 CanvasKit WASM 的 JPEG encoder 無法產生結果，因此不能直接替換這段。Casty 本身也會先取得低解析度變動通知，再要求完整截圖，會有額外編碼工作。
 
+## Renderer worker
+
+CanvasKit 合成與截圖編碼預設在 Worker 中執行，讓 Wayland socket 所在的執行緒保持可回應。使用 `bun index.js -- --no-render-worker` 或設定 `BUNINU_RENDER_WORKER=0`，可改回主執行緒繪製。先前的實驗環境變數仍受支援，但 `BUNINU_RENDER_WORKER` 的設定優先。
+
+若 Worker 在 10 秒內未完成啟動、意外退出、發生未捕捉錯誤，或執行中的截圖請求超過 5 秒未回覆，Land 會終止 Worker，印出一次診斷訊息並回退到主執行緒 renderer，重新嘗試失敗的截圖。無效截圖參數仍視為一般請求錯誤，不會觸發回退。Worker 路徑最多接受八個排隊或執行中的截圖；關閉時會拒絕未完成請求並終止 Worker。
+
 ## 驗證
 
 ```sh

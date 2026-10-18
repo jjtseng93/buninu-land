@@ -14,6 +14,7 @@ export async function start(args = Bun.argv.slice(2)) {
   --window-size=WIDTH,HEIGHT       Output size (default 800,600)
   --linear-dmabuf                 Experimental CPU-readable linear DMA-BUF import
   --poll-interval=MS              Socket polling, 1–1000 ms; -1 = busy (default 4)
+  --no-render-worker              Render on the main thread (worker is default)
   --headless                      Accepted; rendering is always headless
   --help, -h                     Show help
   --version, -V                  Show version
@@ -22,7 +23,9 @@ Casty: export CASTY_BROWSER=/absolute/path/compositor.js
 Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   }
   const { Compositor } = await import('./lib/compositor.js');
-  const { createRenderer } = await import('./lib/renderer.js');
+  const createRenderer = !args.includes('--no-render-worker') && (process.env.BUNINU_RENDER_WORKER??process.env.BUNINU_EXPERIMENT_RENDER_WORKER)!=='0'
+    ? (await import('./lib/worker-renderer.js')).createWorkerRenderer
+    : (await import('./lib/renderer.js')).createRenderer;
   const runtime = runtimeDirectory();
   const requestedDisplay = option('socket', null);
   if (requestedDisplay !== null && (!requestedDisplay || requestedDisplay.includes('/'))) throw Error('--socket must be a socket name');

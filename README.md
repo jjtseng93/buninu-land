@@ -192,6 +192,12 @@ PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base6
 
 JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP wrapping → Bun.Image decoding/encoding → CDP base64 → Casty decoding. BMP wrapping adds a full-frame copy, and Bun.Image then parses the BMP. This cost comes from reusing the browser's encoding utilities; a future encoding path should accept raw pixels directly. The existing CanvasKit WASM's JPEG encoder does not produce output, so it cannot directly replace this path. Casty also receives low-resolution change notifications before requesting full screenshots, adding encoding work.
 
+## Renderer worker
+
+CanvasKit composition and screenshot encoding run in a worker by default, keeping the Wayland socket thread responsive. Use `bun index.js -- --no-render-worker` or set `BUNINU_RENDER_WORKER=0` to render on the main thread instead. The earlier experimental environment variable remains supported, with `BUNINU_RENDER_WORKER` taking precedence.
+
+If the worker cannot start within 10 seconds, exits unexpectedly, raises an uncaught error, or does not answer an active capture within 5 seconds, Land terminates it and falls back to the main-thread renderer with one diagnostic message. The failed capture is retried there. Invalid screenshot options remain ordinary request errors. The worker path allows at most eight queued/in-flight captures; shutdown rejects outstanding requests and terminates the worker.
+
 ## Verification
 
 ```sh

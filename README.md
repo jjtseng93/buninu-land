@@ -6,7 +6,7 @@ A Wayland compositor in JavaScript and WebAssembly for Bun
 
 > **Warning:** This project is still in very early development. Features are incomplete, and behavior and APIs may change significantly. It is not ready for everyday use.
 
-A Wayland compositor that runs directly in Bun. The first version supports headless software compositing, with animation verified using the system's `weston-simple-shm`, along with Casty's launch, CDP setup, and frame reception flows. There is no build step, npm runtime dependency, or GPU rendering path.
+A Wayland compositor that runs directly in Bun. The first version supports headless software compositing, with animation verified using the system's `weston-simple-shm`, along with Casty's launch, CDP setup, and frame reception flows. There is no build step, npm runtime dependency, or compositor GPU rendering path.
 
 ## Running
 
@@ -153,7 +153,7 @@ At commit time, SHM pixels are copied into compositor-owned memory using libc `p
 
 Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, and `wl_data_device_manager` v1. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
 
-Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, clipboard, drag-and-drop, GPU/dmabuf, comprehensive popup constraints, and full protocol/role validation are not implemented.
+Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, clipboard, drag-and-drop, GPU compositing, general DMA-BUF support, comprehensive popup constraints, and full protocol/role validation are not implemented.
 
 ### Window shortcuts
 
@@ -208,6 +208,30 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 ```
 
 In the tested proot environment, also set `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`; this disables sandboxing only for the test Chromium process. Regular `bun test` skips these two browser tests but verifies subsurface synchronization, buffer snapshots, stacking, and mode changes.
+
+## Direct Freedreno/KGSL experiment
+
+The installed custom aarch64 Mesa build can render OpenGL directly through Freedreno on Adreno 830. Runtime observation of Termux X11 showed DRI3 DMA-BUF submission; no Termux X11 source was read or copied. Inspection of the installed Mesa EGL binary found that a successful Wayland roundtrip skipped its existing KGSL device-open branch. An isolated, build-specific branch change enabled direct Freedreno rendering and LINEAR DMA-BUF submission to Land, with changing screenshots verified.
+
+Start a new Land instance with experimental linear DMA-BUF import enabled:
+
+```sh
+bun index.js -- --linear-dmabuf --poll-interval=1
+```
+
+`--linear-dmabuf` advertises v3 with explicit LINEAR ARGB8888/XRGB8888 only. Its importer supports CPU-mappable, single-plane buffers through libc mmap and DMA-BUF read synchronization; unsupported layouts fail import. Default launches do not advertise this protocol. `--poll-interval=1` reduces socket polling latency at increased CPU cost; the default remains 4 ms. `--poll-interval=-1` enables busy polling with `setImmediate`, yielding to the event loop between polls while continuously consuming CPU.
+
+Then run this **inside Debian/proot**, using the actual socket printed by Land:
+
+```sh
+WAYLAND_DISPLAY=wayland-buninu bun tests/kgsl-wayland.js
+# Or a ten-second measurement:
+WAYLAND_DISPLAY=wayland-buninu bun tests/kgsl-wayland.js -b build:duration=10
+```
+
+The script checks the exact installed EGL SHA-256 before changing one instruction in a private temporary copy. It does not replace system Mesa or load EGL into Land. It selects `kgsl`, clears forced Gallium/software-presentation settings, and defaults `vblank_mode` to 0. This is a diagnostic workaround for that single binary, not a portable or production driver fix. The expected renderer is `freedreno` / `Adreno (TM) 830`.
+
+A ten-second 800×600 build scene measured 465 client FPS with native Land and 1 ms polling. A temporary busy-polling experiment reached 1125 FPS; Termux X11 with `vblank_mode=0` reached 1992 FPS. Rates vary (a later short busy-poll run measured 588 FPS). Busy polling can now be selected with `--poll-interval=-1`; it remains opt-in and continuously consumes CPU. These measurements used periodic screenshot checks, not an active Casty stream; they do not establish terminal display FPS. Land still copies the imported pixels and composites on the CPU.
 
 ## Licensing
 

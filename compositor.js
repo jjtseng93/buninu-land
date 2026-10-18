@@ -12,6 +12,8 @@ export async function start(args = Bun.argv.slice(2)) {
   --socket=NAME                   Wayland socket (default: first free wayland-buninu[N])
   --remote-debugging-port=PORT     CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT       Output size (default 800,600)
+  --linear-dmabuf                 Experimental CPU-readable linear DMA-BUF import
+  --poll-interval=MS              Socket polling, 1–1000 ms; -1 = busy (default 4)
   --headless                      Accepted; rendering is always headless
   --help, -h                     Show help
   --version, -V                  Show version
@@ -30,7 +32,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   let compositor, display;
   for (let number = 0; number < 1000; number++) {
     display = requestedDisplay ?? `wayland-buninu${number || ''}`;
-    try { compositor = new Compositor({ socket: join(runtime, display), width, height }); break; }
+    try { compositor = new Compositor({ socket: join(runtime, display), width, height, linearDmabuf:args.includes('--linear-dmabuf'), pollInterval:Number(option('poll-interval','4')) }); break; }
     catch (error) { if (requestedDisplay !== null || error.code !== 'EADDRINUSE') throw error; }
   }
   if (!compositor) throw Error('No free Wayland socket among wayland-buninu through wayland-buninu999');

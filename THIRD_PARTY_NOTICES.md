@@ -77,7 +77,7 @@ build configuration is not assumed to be enabled in this artifact.
 
 ## Wayland protocol descriptions
 
-`protocols/wayland.xml` and `protocols/xdg-shell.xml` are unmodified system
+The XML files in `protocols/`, including `linux-dmabuf-v1.xml`, are unmodified system
 protocol descriptions; their copyright and MIT-style permission notices are
 retained inside each XML file. Source locations are recorded in `SOURCES.md`.
 

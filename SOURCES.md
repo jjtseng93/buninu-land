@@ -8,6 +8,7 @@ No packages were installed for this implementation.
 - `protocols/xdg-shell.xml`: copied unchanged from `/usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml`.
 - `protocols/viewporter.xml`: copied unchanged from `/usr/share/wayland-protocols/stable/viewporter/viewporter.xml`.
 - `protocols/fractional-scale-v1.xml`: copied unchanged from `/usr/share/wayland-protocols/staging/fractional-scale/fractional-scale-v1.xml`.
+- `protocols/linux-dmabuf-v1.xml`: copied unchanged from `/usr/share/wayland-protocols/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml` (system wayland-protocols 1.44). The experimental implementation exposes version 3 and CPU-readable, single-plane, explicitly linear ARGB8888/XRGB8888 only. Params lifetime and import failure behavior were checked against `../Hyprland/src/protocols/LinuxDMABUF.cpp`; no native code is copied or linked.
 - Protocol XML files contain their own copyright and permission notices.
 
 The requested neighboring repository is named `../Hyprland`, rather than `../Hyperland`. Its checkout HEAD at implementation time was `e2ad066c9ffd45ddfbe4dc76d2de16b382fbe3eb`. Its `CMakeLists.txt` likewise consumes the system wayland.xml and stable/xdg-shell XML. Its `src/protocols/core/Shm.cpp`, core compositor structure, and `src/protocols/XDGShell.cpp` were consulted for pool lifetime, validation, and configure ordering. No C++ was built or linked. The first milestone implements a subset of these protocols in JS; it does not claim full Hyprland behavior.

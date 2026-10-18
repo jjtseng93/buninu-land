@@ -8,7 +8,7 @@ The following notices apply to the respective bundled components.
 Source: https://github.com/jjtseng93/buninu-browser
 Copyright (c) 2026 Dr. John (醫者小智). MIT; see `LICENSES/buninu-browser.txt`.
 
-`vendor/buninu-browser/cdp-server.js`, `lib/user-agent.js`, and `lib/frame.js` are unchanged copies. `lib/cdp-server.js` adds two optional raw input hooks; see `patches/cdp-input.patch`.
+`vendor/buninu-browser/cdp-server.js`, `lib/user-agent.js`, and `lib/frame.js` are unchanged copies. `lib/cdp-server.js` adds two optional raw input hooks and an optional navigation URL hook; see `patches/cdp-input.patch`.
 `index.js` is adapted from its launcher: package/engine names and help text are
 changed for Wayland, and Chinese README aliases are added; frontend dispatch, argument forwarding, the npx → bunx →
 bun x selection, child-process handling, and reserved native frontend commands

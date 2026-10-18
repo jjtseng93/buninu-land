@@ -1,18 +1,20 @@
 --- vendor/buninu-browser/cdp-server.js
 +++ lib/cdp-server.js
-@@ -685,6 +685,7 @@
-       if (params.objectId) state.objects.delete(params.objectId);
-       return {};
-     case "Input.dispatchMouseEvent": {
+@@ -448,0 +449 @@
++      if (ctx.resolveNavigationUrl) params = { ...params, url: ctx.resolveNavigationUrl(params.url) };
+@@ -687,0 +689 @@
 +      if (ctx.dispatchMouseEvent) { await ctx.dispatchMouseEvent(params); return {}; }
-       const target = getSessionTarget(state, sessionId);
-       if (params.type === "mouseMoved") {
-         await ctx.move?.(params.x, params.y);
-@@ -713,6 +714,7 @@
-       return {};
-     }
-     case "Input.dispatchKeyEvent": {
+@@ -715,0 +718 @@
 +      if (ctx.dispatchKeyEvent) { await ctx.dispatchKeyEvent(params); return {}; }
-       const target = getSessionTarget(state, sessionId);
-       const key = params.key ?? params.text ?? "";
-       const signature = `${params.code ?? key}:${params.modifiers ?? 0}`;
+@@ -798,0 +802 @@
++  url = state.context?.resolveNavigationUrl?.(url) ?? url;
+@@ -907,0 +912 @@
++  url = state.context?.resolveNavigationUrl?.(url) ?? url;
+@@ -1000,0 +1006 @@
++  const url = state.context?.resolveNavigationUrl?.("about:blank") ?? "about:blank";
+@@ -1008 +1014 @@
+-    url: "about:blank",
++    url,
+@@ -1016 +1022 @@
+-        url: "about:blank",
++        url,

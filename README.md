@@ -106,6 +106,8 @@ Manual headless and Casty-managed instances can coexist with different automatic
 
 Run `bun compositor.js --help` for options. Default socket allocation starts at `wayland-buninu`, and the default display size is 800×600. Use `--socket=NAME` to select another socket or `--remote-debugging-port=0` to select a port automatically. `BUNINU_LOG=1` writes Wayland requests to stderr.
 
+Land reports its actual Wayland socket path in the address bar after navigation, regardless of the supplied URL; it does not open web pages.
+
 ## Updating and clearing cached packages
 
 To request the latest published Buninu Land explicitly, run `npx buninu-land@latest`.
@@ -141,7 +143,7 @@ References: [npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/),
 
 - `index.js`: the package launcher adapted from the browser. It starts Casty by default and sets `CASTY_BROWSER` to the compositor.
 - `compositor.js`: headless controller, CDP context adapter, lifecycle management, and CLI.
-- `lib/cdp-server.js`: browser CDP server with two optional raw-input hooks; the unchanged original is in `vendor/buninu-browser/cdp-server.js`, with the diff in `patches/cdp-input.patch`. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
+- `lib/cdp-server.js`: browser CDP server with two optional raw-input hooks and an optional navigation URL hook; the unchanged original is in `vendor/buninu-browser/cdp-server.js`, with the diff in `patches/cdp-input.patch`. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
 - `lib/protocol.js`: reads standard XML at runtime with `Bun.XML.parse()`, preserving opcode and argument order.
 - `lib/transport.js`: loads only libc through Bun FFI; handles Unix sockets, `recvmsg`/`SCM_RIGHTS`, nonblocking transport, socket locking, and FD cleanup.
 - `lib/compositor.js`: per-client object tables, SHM pool/buffer lifetimes, surface commits, xdg configure/ack, and frame callbacks.

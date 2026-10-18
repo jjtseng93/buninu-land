@@ -13,6 +13,7 @@ export async function start(args = Bun.argv.slice(2)) {
   --remote-debugging-port=PORT     CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT       Output size (default 800,600)
   --linear-dmabuf                 Experimental CPU-readable linear DMA-BUF import
+  --lazy-dmabuf                   Defer DMA-BUF reads (requires --linear-dmabuf)
   --poll-interval=MS              Socket polling, 1–1000 ms; -1 = busy (default 4)
   --no-render-worker              Render on the main thread (worker is default)
   --headless                      Accepted; rendering is always headless
@@ -22,6 +23,9 @@ Socket directory: XDG_RUNTIME_DIR, then TMPDIR, then the system temp directory.
 Casty: export CASTY_BROWSER=/absolute/path/compositor.js
 Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   }
+  const linearDmabuf=args.includes('--linear-dmabuf');
+  if(args.includes('--lazy-dmabuf')&&!linearDmabuf)throw Error('--lazy-dmabuf requires --linear-dmabuf');
+  const lazyDmabuf=linearDmabuf&&(args.includes('--lazy-dmabuf')||process.env.BUNINU_EXPERIMENT_DMABUF_LAZY==='1');
   const { Compositor } = await import('./lib/compositor.js');
   const createRenderer = !args.includes('--no-render-worker') && (process.env.BUNINU_RENDER_WORKER??process.env.BUNINU_EXPERIMENT_RENDER_WORKER)!=='0'
     ? (await import('./lib/worker-renderer.js')).createWorkerRenderer
@@ -35,7 +39,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   let compositor, display;
   for (let number = 0; number < 1000; number++) {
     display = requestedDisplay ?? `wayland-buninu${number || ''}`;
-    try { compositor = new Compositor({ socket: join(runtime, display), width, height, linearDmabuf:args.includes('--linear-dmabuf'), pollInterval:Number(option('poll-interval','4')) }); break; }
+    try { compositor = new Compositor({ socket: join(runtime, display), width, height, linearDmabuf, lazyDmabuf, pollInterval:Number(option('poll-interval','4')) }); break; }
     catch (error) { if (requestedDisplay !== null || error.code !== 'EADDRINUSE') throw error; }
   }
   if (!compositor) throw Error('No free Wayland socket among wayland-buninu through wayland-buninu999');

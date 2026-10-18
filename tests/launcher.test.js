@@ -33,7 +33,8 @@ test('default executable forwards CASTY_BROWSER and arguments without downloadin
 test('help/version aliases, native placeholders, and headless forwarding', async () => {
   for (const path of [entry,engine]) for (const flag of ['--help','-h','--version','-V']) {
     const child=Bun.spawn([process.execPath,path,flag],{stdout:'pipe',stderr:'pipe'});
-    expect(await child.exited).toBe(0); expect(await new Response(child.stdout).text()).toContain('buninu-land');
+    expect(await child.exited).toBe(0); const output=await new Response(child.stdout).text();expect(output).toContain('buninu-land');
+    if(['--help','-h'].includes(flag))for(const option of ['--linear-dmabuf','--lazy-dmabuf','--poll-interval','--no-render-worker'])expect(output).toContain(option);
   }
   for (const frontend of ['--win32','--gtk','--appkit','--qt']) {
     const child=Bun.spawn([process.execPath,entry,frontend],{stdout:'pipe',stderr:'pipe'});

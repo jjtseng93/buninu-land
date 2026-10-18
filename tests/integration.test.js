@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { start } from '../compositor.js';
@@ -40,10 +40,6 @@ test.skipIf(!Bun.which('weston-simple-shm'))('weston-simple-shm animates and CDP
     app.close(); if (previous === undefined) delete process.env.XDG_RUNTIME_DIR; else process.env.XDG_RUNTIME_DIR=previous;
   }
 }, 15000);
-
-test.skipIf(!existsSync(new URL('../../buninu-browser/lib/cdp-server.js', import.meta.url)))('CDP server is byte-for-byte unchanged from buninu-browser', () => {
-  expect(readFileSync(new URL('../vendor/buninu-browser/cdp-server.js',import.meta.url))).toEqual(readFileSync(new URL('../../buninu-browser/lib/cdp-server.js',import.meta.url)));
-});
 
 // Pins copied assets even when the sibling source checkout is unavailable.
 test('vendored code, WASM, and protocol XML match recorded bytes', async () => {

@@ -239,6 +239,30 @@ The script uses an existing AArch64-capable `objdump` to locate a unique Wayland
 
 A ten-second 800×600 build scene measured 465 client FPS with native Land and 1 ms polling. A temporary busy-polling experiment reached 1125 FPS; Termux X11 with `vblank_mode=0` reached 1992 FPS. Rates vary (a later short busy-poll run measured 588 FPS). Busy polling can now be selected with `--poll-interval=-1`; it remains opt-in and continuously consumes CPU. These measurements used periodic screenshot checks, not an active Casty stream; they do not establish terminal display FPS. Land still copies the imported pixels and composites on the CPU.
 
+### Deferred DMA-BUF experiment and renderer worker measurements
+
+The renderer worker is now enabled by default. `--lazy-dmabuf` enables experimental deferred DMA-BUF capture and requires `--linear-dmabuf`; it is disabled by default. The earlier `BUNINU_EXPERIMENT_DMABUF_LAZY=1` environment variable remains supported when linear DMA-BUF import is enabled. To combine them in native Termux:
+
+```sh
+bun index.js -- --linear-dmabuf --lazy-dmabuf --poll-interval=-1
+```
+
+Deferred DMA-BUF capture retains the buffer and its mapping until a screenshot needs its pixels. Replaced, uncaptured frames are released without CPU synchronization or copying. Captured frames are copied under DMA-BUF read synchronization before release. The renderer worker moves CanvasKit composition and image encoding off the Wayland socket thread. It still uses software rendering and adds a structured-clone pixel copy when sending a new snapshot to the worker; this is not zero-copy GPU composition. SHM retains its existing eager snapshot behavior.
+
+A native Adreno 830 experiment used the same 800×600, ten-second glmark2 build scene with busy polling and Casty's actual JPEG streaming code. The frontend receiver did not paint images in a terminal:
+
+| Mode | Client FPS | Reverse-order repeat |
+| --- | ---: | ---: |
+| Existing path | 258 | 197 |
+| Deferred capture only | 482 | — |
+| Renderer worker only | 631 | — |
+| Both experiments | 1536 | 1115 |
+| Termux X11, separate run | 1793 | 1262 |
+
+Casty received about 17–20 full-size frames per second; client FPS is not display FPS. The experiments primarily remove client stalls and discard intermediate frames, rather than outputting thousands of pictures per second. Temperature and scheduling affect results. Raw timings are recorded in `tests/dmabuf-experiment-results.json`.
+
+To repeat: start `bun tests/dmabuf-perf.js` in native Termux, then run `bun tests/dmabuf-benchmark.js --x11` in Debian/proot. Add `--repeat` to run the combined mode followed by the baseline. The controller uses loopback port 19381 and a separate `wayland-dmabuf-perf` socket; it does not attach to an existing Land instance. The benchmark uses the experimental KGSL launcher above and requires its matching Mesa control flow. Stop the controller after testing. These measurements are not a general desktop compatibility or terminal throughput guarantee.
+
 ## Licensing
 
 The project's original code is MIT-licensed; see `LICENSE`. Sources and licenses for the reused browser code, CanvasKit WASM and its embedded components, and Wayland XML are documented in `THIRD_PARTY_NOTICES.md`, `LICENSES/`, and `SOURCES.md`. The project's MIT declaration does not replace third-party licenses.

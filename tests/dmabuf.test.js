@@ -3,8 +3,9 @@ import {ptr} from 'bun:ffi';
 import {mkdtempSync,openSync,closeSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {DmabufParams,linearFormats} from '../lib/dmabuf.js';
+import {DmabufParams,linearFormats,deferDmabuf} from '../lib/dmabuf.js';
 import {Compositor} from '../lib/compositor.js';
+import {flushDesynchronized} from '../lib/subsurface.js';
 const fake=()=>{
  const bytes=Buffer.from([1,2,3,255,4,5,6,255]),calls=[];
  return {bytes,calls,sys:{close:fd=>calls.push(['close',fd]),lseek:()=>8,
@@ -62,4 +63,61 @@ test('optional DMA-BUF registry, failed async import, and server object lifecycl
   c.destroy(c.object(id));expect(events.some(e=>e[1]==='delete_id'&&e[2]===id)).toBe(false);
   expect(f.calls.at(-1)).toEqual(['close',9]);
  }finally{socket?.end();comp.close();}
+});
+
+test('deferred DMA-BUF holds mapping after wl_buffer destruction, copies once, and releases once',()=>{
+ const f=fake(),p=new DmabufParams(f.sys);p.add(9,0,0,8,0,0);
+ const dmabuf=p.create(2,1,linearFormats[0],0),buffer={...dmabuf,dmabuf};let releases=0;
+ const frame=deferDmabuf(buffer,()=>releases++);
+ dmabuf.close();expect(f.calls.some(c=>c[0]==='unmap')).toBe(false);
+ const copy=frame.bytes;expect(copy).toEqual(f.bytes);f.bytes[0]=88;
+ expect(frame.bytes).toBe(copy);expect(frame.bytes[0]).toBe(1);expect(releases).toBe(1);
+ frame.dispose();expect(releases).toBe(1);expect(f.calls.filter(c=>c[0]==='unmap').length).toBe(1);
+});
+test('dropping deferred frames avoids readback and waits for all uses before release',()=>{
+ const f=fake(),p=new DmabufParams(f.sys);p.add(9,0,0,8,0,0);
+ const dmabuf=p.create(2,1,linearFormats[0],0),buffer={...dmabuf,dmabuf};let releases=0;
+ const a=deferDmabuf(buffer,()=>releases++),b=deferDmabuf(buffer,()=>releases++);
+ a.dispose();expect(releases).toBe(0);b.dispose();expect(releases).toBe(1);
+ expect(f.calls.filter(c=>c[0]==='sync').length).toBe(2); // import probe only
+ expect(()=>a.bytes).toThrow('Discarded');dmabuf.close();
+});
+test('deferred read failure still releases mapping ownership',()=>{
+ const f=fake(),p=new DmabufParams(f.sys);p.add(9,0,0,8,0,0);
+ const dmabuf=p.create(2,1,linearFormats[0],0),buffer={...dmabuf,dmabuf};let releases=0;
+ const a=deferDmabuf(buffer,()=>releases++);dmabuf.close();f.sys.ioctl=()=>-1;
+ expect(()=>a.bytes).toThrow('synchronization');expect(releases).toBe(1);
+ expect(f.calls.at(-1)).toEqual(['close',9]);expect(()=>a.bytes).toThrow('synchronization');expect(releases).toBe(1);
+});
+
+test('deferred commits release replaced and cached buffers and survive destroyed wl_buffer',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'land-dma-lazy-')),comp=new Compositor({socket:join(dir,'wl'),linearDmabuf:true});let socket;
+ comp.lazyDmabuf=true;
+ try{
+  socket=await Bun.connect({unix:join(dir,'wl'),socket:{data(){},close(){},error(){}}});
+  for(let i=0;i<100&&!comp.clients.size;i++)await Bun.sleep(5);
+  const c=[...comp.clients][0],events=[];c.event=(o,name,...args)=>events.push([o.id,name,...args]);
+  c.request(c.add(2,'wl_compositor'),'create_surface',[3]);const surface=c.object(3);
+  const make=id=>{const f=fake(),p=new DmabufParams(f.sys);p.add(id,0,0,8,0,0);const dma=p.create(2,1,linearFormats[0],0);return {f,buffer:c.add(id,'wl_buffer',1,{dmabuf:dma,width:2,height:1,stride:8,format:0})};};
+  const a=make(4),b=make(5);
+  surface.pending={buffer:a.buffer};c.commit(surface);expect(events.filter(e=>e[1]==='release')).toHaveLength(0);
+  surface.pending={buffer:b.buffer};c.commit(surface);expect(events.filter(e=>e[1]==='release')).toEqual([[4,'release']]);
+  c.destroy(b.buffer);expect(b.f.calls.some(e=>e[0]==='unmap')).toBe(false);
+  expect(surface.pixels.bytes).toEqual(b.f.bytes);expect(b.f.calls.at(-1)).toEqual(['close',5]);
+  expect(events.some(e=>e[0]===5&&e[1]==='release')).toBe(false);
+  surface.subsurface={sync:true,parent:{}};
+  const d=make(6),e=make(7);surface.pending={buffer:d.buffer};c.commit(surface);
+  surface.pending={buffer:e.buffer};c.commit(surface);expect(events.some(e=>e[0]===6&&e[1]==='release')).toBe(true);
+  c.destroy(surface);expect(events.some(e=>e[0]===7&&e[1]==='release')).toBe(true);
+  c.destroy(d.buffer);c.destroy(e.buffer);expect(e.f.calls.at(-1)).toEqual(['close',7]);
+ }finally{socket?.end();comp.close();}
+});
+
+test('failed cached subsurface application releases its deferred snapshot',()=>{
+ const f=fake(),p=new DmabufParams(f.sys);p.add(9,0,0,8,0,0);
+ const dmabuf=p.create(2,1,linearFormats[0],0),buffer={...dmabuf,dmabuf};let released=0;
+ const snapshot=deferDmabuf(buffer,()=>released++),pending={};dmabuf.close();
+ const surface={pending,cached:{snapshot},client:{commit(){throw Error('invalid configure');}}};
+ expect(()=>flushDesynchronized(surface)).toThrow('invalid configure');
+ expect(released).toBe(1);expect(surface.pending).toBe(pending);expect(f.calls.at(-1)).toEqual(['close',9]);
 });

@@ -1,0 +1,446 @@
+{
+  "scene": "glmark2 build, 800x600, 10 seconds, vblank_mode=0",
+  "land": "Native Android Bun, --linear-dmabuf --poll-interval=-1",
+  "frontend": "Real Casty setupPage/startScreencast, JPEG quality 85, no terminal painting",
+  "x11ClientFps": [
+    1793,
+    1262
+  ],
+  "trials": [
+    {
+      "exitCode": 0,
+      "stats": {
+        "jpeg:200x150:compose": {
+          "count": 403,
+          "totalMs": 1224.54343899998,
+          "maxMs": 7.968334000000141
+        },
+        "jpeg:200x150:readback": {
+          "count": 403,
+          "totalMs": 77.58020100001704,
+          "maxMs": 3.1209380000000237
+        },
+        "jpeg:800x600:compose": {
+          "count": 202,
+          "totalMs": 5177.6211430000185,
+          "maxMs": 28.777656000000206
+        },
+        "jpeg:800x600:readback": {
+          "count": 202,
+          "totalMs": 94.28577299999233,
+          "maxMs": 2.9333330000008573
+        },
+        "jpeg:200x150:bmp+encode+base64": {
+          "count": 403,
+          "totalMs": 374.1083290000306,
+          "maxMs": 8.263594000000012
+        },
+        "jpeg:200x150:total": {
+          "count": 403,
+          "totalMs": 1679.7971439999674,
+          "maxMs": 10.762500000000728
+        },
+        "jpeg:800x600:bmp+encode+base64": {
+          "count": 202,
+          "totalMs": 1219.4024990000144,
+          "maxMs": 9.140416000000187
+        },
+        "jpeg:800x600:total": {
+          "count": 202,
+          "totalMs": 6493.705609000016,
+          "maxMs": 38.5627599999998
+        },
+        "dmabuf-commit": {
+          "count": 2579,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 2579,
+          "totalMs": 428.0570280000411,
+          "maxMs": 0.38192700000217883
+        },
+        "dmabuf-copy": {
+          "count": 2579,
+          "totalMs": 752.004084000002,
+          "maxMs": 4.222655999999915
+        },
+        "dmabuf-sync-end": {
+          "count": 2579,
+          "totalMs": 428.9175699999487,
+          "maxMs": 0.32880199999999604
+        }
+      },
+      "captures": 202,
+      "distinctFrames": 200,
+      "errors": [],
+      "name": "casty-base",
+      "clientFps": 258
+    },
+    {
+      "exitCode": 0,
+      "stats": {
+        "worker-scene-copy": {
+          "count": 511,
+          "totalMs": 1166.0721380000468,
+          "maxMs": 6.1614059999992605
+        },
+        "worker:jpeg:200x150:compose": {
+          "count": 340,
+          "totalMs": 856.7552050000032,
+          "maxMs": 8.736041000000029
+        },
+        "worker:jpeg:200x150:readback": {
+          "count": 340,
+          "totalMs": 25.302864000004845,
+          "maxMs": 1.9795830000002752
+        },
+        "worker:jpeg:200x150:bmp+encode+base64": {
+          "count": 340,
+          "totalMs": 176.59448200000656,
+          "maxMs": 3.1649469999993016
+        },
+        "worker:jpeg:200x150:total": {
+          "count": 340,
+          "totalMs": 1059.3755100000003,
+          "maxMs": 9.469686999999993
+        },
+        "worker:jpeg:800x600:compose": {
+          "count": 171,
+          "totalMs": 6293.337087999996,
+          "maxMs": 41.51317700000004
+        },
+        "worker:jpeg:800x600:readback": {
+          "count": 171,
+          "totalMs": 119.65167100000058,
+          "maxMs": 1.697917000000018
+        },
+        "worker:jpeg:800x600:bmp+encode+base64": {
+          "count": 171,
+          "totalMs": 1021.4488530000064,
+          "maxMs": 11.4728640000003
+        },
+        "worker:jpeg:800x600:total": {
+          "count": 171,
+          "totalMs": 7435.142549,
+          "maxMs": 51.57135400000004
+        },
+        "dmabuf-commit": {
+          "count": 15355,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 505,
+          "totalMs": 89.32024400000955,
+          "maxMs": 0.3630730000004405
+        },
+        "dmabuf-copy": {
+          "count": 505,
+          "totalMs": 495.1071640000373,
+          "maxMs": 4.9248440000010305
+        },
+        "dmabuf-sync-end": {
+          "count": 505,
+          "totalMs": 85.62899600001401,
+          "maxMs": 0.2658850000007078
+        }
+      },
+      "captures": 171,
+      "distinctFrames": 169,
+      "errors": [],
+      "name": "casty-both",
+      "clientFps": 1536
+    },
+    {
+      "exitCode": 0,
+      "stats": {
+        "jpeg:200x150:compose": {
+          "count": 399,
+          "totalMs": 1321.8238119999478,
+          "maxMs": 8.457186999999976
+        },
+        "jpeg:200x150:readback": {
+          "count": 399,
+          "totalMs": 30.728214999977354,
+          "maxMs": 5.687238999998954
+        },
+        "jpeg:800x600:compose": {
+          "count": 202,
+          "totalMs": 5351.668495000002,
+          "maxMs": 30.34140599999955
+        },
+        "jpeg:800x600:readback": {
+          "count": 202,
+          "totalMs": 126.92063100000814,
+          "maxMs": 1.7869270000010147
+        },
+        "jpeg:200x150:bmp+encode+base64": {
+          "count": 399,
+          "totalMs": 216.47703499994532,
+          "maxMs": 7.202186999998958
+        },
+        "jpeg:200x150:total": {
+          "count": 399,
+          "totalMs": 1571.6648419999729,
+          "maxMs": 9.389844000001176
+        },
+        "jpeg:800x600:bmp+encode+base64": {
+          "count": 201,
+          "totalMs": 1326.2610940000013,
+          "maxMs": 12.423281000003044
+        },
+        "jpeg:800x600:total": {
+          "count": 201,
+          "totalMs": 6806.464633000003,
+          "maxMs": 41.172083999997994
+        },
+        "dmabuf-commit": {
+          "count": 4826,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 394,
+          "totalMs": 70.08154199998899,
+          "maxMs": 0.26953100000173436
+        },
+        "dmabuf-copy": {
+          "count": 394,
+          "totalMs": 155.38191300000472,
+          "maxMs": 3.6465100000023085
+        },
+        "dmabuf-sync-end": {
+          "count": 394,
+          "totalMs": 66.31431599999632,
+          "maxMs": 0.25307299999985844
+        }
+      },
+      "captures": 201,
+      "distinctFrames": 200,
+      "errors": [],
+      "name": "casty-lazy",
+      "clientFps": 482
+    },
+    {
+      "exitCode": 0,
+      "stats": {
+        "worker-scene-copy": {
+          "count": 562,
+          "totalMs": 325.8556859999335,
+          "maxMs": 1.9573439999985567
+        },
+        "worker:jpeg:200x150:compose": {
+          "count": 374,
+          "totalMs": 924.8224449999989,
+          "maxMs": 8.970573000000002
+        },
+        "worker:jpeg:200x150:readback": {
+          "count": 374,
+          "totalMs": 23.124412999986774,
+          "maxMs": 0.4076559999999887
+        },
+        "worker:jpeg:200x150:bmp+encode+base64": {
+          "count": 374,
+          "totalMs": 182.59182800000582,
+          "maxMs": 2.308281000000534
+        },
+        "worker:jpeg:200x150:total": {
+          "count": 374,
+          "totalMs": 1131.3733760000107,
+          "maxMs": 9.702760000000012
+        },
+        "worker:jpeg:800x600:compose": {
+          "count": 187,
+          "totalMs": 6896.1343719999995,
+          "maxMs": 42.083594000000176
+        },
+        "worker:jpeg:800x600:readback": {
+          "count": 187,
+          "totalMs": 116.49275300000045,
+          "maxMs": 2.168280999999979
+        },
+        "worker:jpeg:800x600:bmp+encode+base64": {
+          "count": 187,
+          "totalMs": 1049.7687360000007,
+          "maxMs": 13.074375000000146
+        },
+        "worker:jpeg:800x600:total": {
+          "count": 187,
+          "totalMs": 8063.230464000005,
+          "maxMs": 55.104895999999826
+        },
+        "dmabuf-commit": {
+          "count": 6307,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 6307,
+          "totalMs": 1045.7733129996413,
+          "maxMs": 0.36265600000479026
+        },
+        "dmabuf-copy": {
+          "count": 6307,
+          "totalMs": 2447.425686999959,
+          "maxMs": 7.507499999999709
+        },
+        "dmabuf-sync-end": {
+          "count": 6307,
+          "totalMs": 1046.6576060001134,
+          "maxMs": 0.4864589999997406
+        }
+      },
+      "captures": 187,
+      "distinctFrames": 186,
+      "errors": [],
+      "name": "casty-worker",
+      "clientFps": 631
+    },
+    {
+      "exitCode": 0,
+      "stats": {
+        "jpeg:200x150:compose": {
+          "count": 400,
+          "totalMs": 1247.745524999962,
+          "maxMs": 7.646459000010509
+        },
+        "jpeg:200x150:readback": {
+          "count": 400,
+          "totalMs": 99.35829300011392,
+          "maxMs": 6.850885000007111
+        },
+        "jpeg:800x600:compose": {
+          "count": 196,
+          "totalMs": 5303.707600000023,
+          "maxMs": 74.14541699999245
+        },
+        "jpeg:800x600:readback": {
+          "count": 196,
+          "totalMs": 118.49290900005144,
+          "maxMs": 4.1290619999927
+        },
+        "jpeg:200x150:bmp+encode+base64": {
+          "count": 399,
+          "totalMs": 530.9551709999796,
+          "maxMs": 30.925625000003492
+        },
+        "jpeg:200x150:total": {
+          "count": 399,
+          "totalMs": 1881.8671379999141,
+          "maxMs": 34.472343000001274
+        },
+        "jpeg:800x600:bmp+encode+base64": {
+          "count": 195,
+          "totalMs": 1547.8341150000197,
+          "maxMs": 27.713959000000614
+        },
+        "jpeg:800x600:total": {
+          "count": 195,
+          "totalMs": 6943.353591999956,
+          "maxMs": 90.03265699998883
+        },
+        "dmabuf-commit": {
+          "count": 1971,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 1971,
+          "totalMs": 341.0343370002229,
+          "maxMs": 2.21817700000247
+        },
+        "dmabuf-copy": {
+          "count": 1971,
+          "totalMs": 580.3809649997565,
+          "maxMs": 8.2235939999955
+        },
+        "dmabuf-sync-end": {
+          "count": 1971,
+          "totalMs": 338.74746999963827,
+          "maxMs": 0.40395799999532755
+        }
+      },
+      "captures": 195,
+      "distinctFrames": 193,
+      "errors": [],
+      "name": "casty-base-repeat",
+      "clientFps": 197
+    },
+    {
+      "exitCode": 0,
+      "stats": {
+        "worker-scene-copy": {
+          "count": 652,
+          "totalMs": 1102.3048800001416,
+          "maxMs": 5.75312500000291
+        },
+        "worker:jpeg:200x150:compose": {
+          "count": 454,
+          "totalMs": 961.1816130000068,
+          "maxMs": 10.940832999999998
+        },
+        "worker:jpeg:200x150:readback": {
+          "count": 454,
+          "totalMs": 35.01266099999802,
+          "maxMs": 2.847239000000002
+        },
+        "worker:jpeg:200x150:bmp+encode+base64": {
+          "count": 454,
+          "totalMs": 272.440828999994,
+          "maxMs": 2.433020000000397
+        },
+        "worker:jpeg:200x150:total": {
+          "count": 454,
+          "totalMs": 1269.4292829999968,
+          "maxMs": 14.567708000000039
+        },
+        "worker:jpeg:800x600:compose": {
+          "count": 197,
+          "totalMs": 5752.001301000001,
+          "maxMs": 40.313749999999345
+        },
+        "worker:jpeg:800x600:readback": {
+          "count": 197,
+          "totalMs": 81.84295900000131,
+          "maxMs": 1.4650000000000034
+        },
+        "worker:jpeg:800x600:bmp+encode+base64": {
+          "count": 197,
+          "totalMs": 1262.6647899999966,
+          "maxMs": 10.178750000000036
+        },
+        "worker:jpeg:800x600:total": {
+          "count": 197,
+          "totalMs": 7097.1387049999985,
+          "maxMs": 49.07031299999835
+        },
+        "dmabuf-commit": {
+          "count": 11146,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "dmabuf-sync-start": {
+          "count": 641,
+          "totalMs": 89.55051999971329,
+          "maxMs": 0.24874999999883585
+        },
+        "dmabuf-copy": {
+          "count": 641,
+          "totalMs": 512.9174720001029,
+          "maxMs": 4.717499999998836
+        },
+        "dmabuf-sync-end": {
+          "count": 641,
+          "totalMs": 88.87623300004634,
+          "maxMs": 0.20421900000656024
+        }
+      },
+      "captures": 197,
+      "distinctFrames": 196,
+      "errors": [],
+      "name": "casty-both-repeat",
+      "clientFps": 1115
+    }
+  ]
+}

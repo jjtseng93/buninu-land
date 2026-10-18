@@ -6,7 +6,7 @@ A Wayland compositor in JavaScript and WebAssembly for Bun
 
 > **警告：** 本專案仍處於非常早期的開發階段，功能尚不完整，行為與 API 可能大幅變動，目前不適合日常使用。
 
-用 Bun 直接執行的 Wayland compositor。第一版支援 headless 軟體合成，已用系統的 `weston-simple-shm` 驗證動畫，以及 Casty 的啟動、CDP 設定和畫面接收流程。沒有 build step、npm runtime dependencies 或 GPU 路徑。
+用 Bun 直接執行的 Wayland compositor。第一版支援 headless 軟體合成，已用系統的 `weston-simple-shm` 驗證動畫，以及 Casty 的啟動、CDP 設定和畫面接收流程。沒有 build step、npm runtime dependencies 或 compositor GPU 繪製路徑。
 
 ## 執行
 
@@ -149,7 +149,7 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
-Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、剪貼簿與拖放、GPU／dmabuf、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
+Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、剪貼簿與拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 
 ### 視窗快捷鍵
 
@@ -210,6 +210,54 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 ```
 
 在本次 proot 環境，測試指令還需加上 `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`；此變數只停用測試用 Chromium 的 sandbox。一般 `bun test` 會跳過這兩項瀏覽器測試，但會驗證 subsurface 同步、buffer 快照、堆疊和模式切換。
+
+## Direct Freedreno/KGSL 實驗
+
+目前安裝的自訂 aarch64 Mesa 可以在 Adreno 830 上直接透過 Freedreno 繪製 OpenGL。觀察 Termux X11 的執行行為可見 DRI3 DMA-BUF 提交；未閱讀或複製 Termux X11 原始碼。檢查已安裝的 Mesa EGL 二進位檔發現，成功的 Wayland roundtrip 會跳過既有 KGSL 裝置開啟分支。對獨立副本調整該分支後，已能直接使用 Freedreno 繪製並向 Land 提交 LINEAR DMA-BUF，也驗證了持續變化的截圖。
+
+啟動新的 Land，開啟實驗性 linear DMA-BUF 匯入：
+
+```sh
+bun index.js -- --linear-dmabuf --poll-interval=1
+```
+
+`--linear-dmabuf` 宣告第 3 版協定，只提供明確指定 LINEAR 的 ARGB8888／XRGB8888 格式。匯入器透過 libc mmap 與 DMA-BUF 讀取同步，支援可由 CPU 映射的單平面 buffer；不支援的配置會匯入失敗。預設啟動不宣告此協定。`--poll-interval=1` 降低 socket 輪詢延遲，但增加 CPU 成本；預設仍為 4 ms。`--poll-interval=-1` 以 `setImmediate` 啟用 busy polling，每次輪詢之間讓出事件迴圈，但會持續消耗 CPU。
+
+接著在 **Debian/proot 內**執行，使用 Land 印出的實際 socket：
+
+```sh
+WAYLAND_DISPLAY=wayland-buninu bun tests/kgsl-wayland.js
+# 或量測十秒：
+WAYLAND_DISPLAY=wayland-buninu bun tests/kgsl-wayland.js -b build:duration=10
+```
+
+腳本使用已安裝、支援 AArch64 的 `objdump`，尋找唯一一個通往 `loader_open_device("/dev/kgsl-3d0")` 的 Wayland roundtrip 分支，核對反組譯指令與 ELF 內容後，只修改私人暫存副本中的一條指令，不依賴固定檔案雜湊或 offset。可執行 `bun tests/kgsl-wayland.js --check-only`，只檢查相容性而不啟動 client；用 `KGSL_EGL_LIBRARY` 選擇其他 EGL 函式庫，或用 `OBJDUMP` 指定反組譯工具。它不替換系統 Mesa，也不把 EGL 載入 Land。腳本選擇 `kgsl`、清除強制 Gallium／軟體呈現設定，並將 `vblank_mode` 預設為 0。這是針對符合控制流程的自訂 AArch64 Mesa 所做的診斷性修補，不是通用或正式 driver 修正。缺少符號、控制流程不同、匹配不唯一或缺少 KGSL 支援時會拒絕修補。預期 renderer 為 `freedreno`／`Adreno (TM) 830`。
+
+先前十秒、800×600 的 build 場景，以原生 Land 與 1 ms 輪詢測得 465 client FPS；暫時的 busy polling 實驗達到 1125 FPS，Termux X11 在 `vblank_mode=0` 下為 1992 FPS。數字會變動，後來一次短時間 busy polling 測量為 588 FPS。現在可用 `--poll-interval=-1` 選擇 busy polling，仍需手動啟用且會持續消耗 CPU。這些測量僅定期檢查截圖，沒有啟用持續 Casty 串流，不能當成終端顯示 FPS。Land 仍會複製匯入的像素並以 CPU 合成。
+
+### 延後 DMA-BUF 讀取實驗與 renderer worker 測量
+
+Renderer worker 現在預設啟用；`--lazy-dmabuf` 開啟實驗性的延後 DMA-BUF 讀取，必須搭配 `--linear-dmabuf`，預設關閉。啟用 linear DMA-BUF 匯入時，仍相容先前的 `BUNINU_EXPERIMENT_DMABUF_LAZY=1` 環境變數。在原生 Termux 中合併使用：
+
+```sh
+bun index.js -- --linear-dmabuf --lazy-dmabuf --poll-interval=-1
+```
+
+延後讀取會持有 buffer 與其映射，直到截圖需要像素。尚未擷取就被新幀取代的畫面，直接釋放，不做 CPU 同步或複製；真正擷取的畫面則在 DMA-BUF 讀取同步期間完成複製，之後才釋放。Renderer worker 將 CanvasKit 合成與圖片編碼移出 Wayland socket 執行緒，仍然是軟體繪製；新快照送進 Worker 時會增加一次 structured clone 像素複製，並非零複製 GPU 合成。SHM 維持原本立即建立快照的行為。
+
+原生 Adreno 830 實驗使用相同的 800×600、十秒 glmark2 build 場景、busy polling 與 Casty 真正的 JPEG 串流程式；接收端沒有在終端繪製圖片：
+
+| 模式 | Client FPS | 反向順序重測 |
+| --- | ---: | ---: |
+| 原有路徑 | 258 | 197 |
+| 只延後讀取 | 482 | — |
+| 只使用 renderer worker | 631 | — |
+| 兩項一起使用 | 1536 | 1115 |
+| Termux X11，另外測量 | 1793 | 1262 |
+
+Casty 每秒收到約 17–20 張完整尺寸圖片；client FPS 不等於顯示 FPS。主要收益是減少 client 等待並丟棄中間幀，而不是每秒輸出數千張圖片。溫度與排程會影響結果。原始計時記錄在 `tests/dmabuf-experiment-results.json`。
+
+重跑方式：先在原生 Termux 執行 `bun tests/dmabuf-perf.js`，再於 Debian/proot 執行 `bun tests/dmabuf-benchmark.js --x11`。加上 `--repeat` 可依序測量兩項一起使用與原有路徑。控制程式使用 loopback port 19381 和獨立的 `wayland-dmabuf-perf` socket，不會連接既有 Land。測量會使用上述實驗性 KGSL launcher，因此需要符合其控制流程的 Mesa。測試後請停止控制程式。這些測量不代表通用桌面相容性或終端輸出速度保證。
 
 ## 授權
 

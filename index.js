@@ -90,6 +90,22 @@ Wayland:
   Socket directory: XDG_RUNTIME_DIR, then TMPDIR, then the system temp directory.
   Default socket name: wayland-buninu.
 
+Engine options (after -- for casty; directly after --headless):
+  --socket=NAME
+      Select the Wayland socket name
+  --remote-debugging-port=PORT
+      CDP port (default 9222; 0 selects a free port)
+  --window-size=WIDTH,HEIGHT
+      Output size (default 800,600)
+  --linear-dmabuf
+      Enable experimental CPU-readable linear DMA-BUF import
+  --lazy-dmabuf
+      Defer DMA-BUF reads until capture; requires --linear-dmabuf
+  --poll-interval=MS
+      Socket polling: 1–1000 ms; -1 = busy polling (default 4)
+  --no-render-worker
+      Render on the main thread instead of the default worker
+
 Information:
   --help, -h, -help
       Show this help & exit
@@ -103,6 +119,8 @@ Information:
 Examples:
   ${name}
       Open the Wayland desktop in casty
+  ${name} -- --linear-dmabuf --lazy-dmabuf --poll-interval=-1
+      Experimental deferred DMA-BUF capture with busy polling
   ${name} --headless --remote-debugging-port=9222
       The engine alone, for any CDP client
 `;

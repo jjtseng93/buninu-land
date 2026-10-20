@@ -48,11 +48,13 @@ bun index.js --headless --help
 bun index.js --casty --help
 ```
 
+The Land launcher adds `--no-shortcuts`: all page keys reach Wayland clients. Click **@** at the left of the URL bar for an empty `cmd>`, then enter `q` to quit Casty. Clicking the URL still edits it; editing shortcuts remain available. This needs the updated Casty frontend.
+
 You can also launch it through Casty yourself:
 
 ```sh
 export CASTY_BROWSER="$PWD/compositor.js"
-bunx @drxiaozhi/casty about:blank
+bunx @drxiaozhi/casty --no-shortcuts about:blank
 ```
 
 The socket directory is chosen in this order: an explicitly set `$XDG_RUNTIME_DIR`, `$TMPDIR`, then the system temporary directory. The socket is placed directly in that directory, with no additional subdirectory. It selects the first unlocked name: `wayland-buninu`, `wayland-buninu1`, `wayland-buninu2`, and so on. For example, in another terminal:
@@ -159,15 +161,15 @@ Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, foc
 
 ### Window shortcuts
 
-These three bindings follow [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf), replacing Super with Ctrl+Alt:
+These three bindings follow [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf), using Super directly:
 
 | Shortcut | Action |
 | --- | --- |
-| Ctrl+Alt+Arrow | Focus a window in that direction on the current workspace |
-| Ctrl+Alt+W | Request that the focused window close; applications may ask for confirmation |
-| Ctrl+Alt+F | Toggle fullscreen; toggle again to restore the layout |
+| Super+Arrow | Focus a window in that direction on the current workspace |
+| Super+W | Request that the focused window close; applications may ask for confirmation |
+| Super+F | Toggle fullscreen; toggle again to restore the layout |
 
-Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Only these three bindings are currently enabled; F6–F9 and the temporary W/arrow/Tab visual probes are removed. Tab combinations pass through to applications. The tested terminal preserves only Shift for Tab, so Ctrl/Alt+Tab is not used for window switching. Restart the compositor to load changes.
+Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Only these three bindings are currently enabled; F6–F9 and the temporary W/arrow/Tab visual probes are removed. Tab combinations pass through to applications. Use an updated casty inside a Kitty-keyboard-capable terminal such as jsgotty or bunterm. Casty negotiates the protocol automatically and forwards Super as CDP Meta, including key releases. Ctrl+Alt combinations now pass through to applications; they are no longer window-shortcut aliases. Legacy terminals still work, but cannot reliably convey Super. Restart both casty and the compositor to load changes.
 
 Protocol definitions are preserved unchanged, but their implementation is JavaScript, not a byte-for-byte copy of Hyprland's C++. Not every request in the XML is implemented. See `SOURCES.md` for references.
 

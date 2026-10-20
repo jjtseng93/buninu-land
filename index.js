@@ -56,6 +56,7 @@ export function chooseFrontend(argv) {
  * bunx, else `bun x` with bun from PATH or process.argv0.
  */
 export function castyCommand(args, which = Bun.which) {
+  args = ["--no-shortcuts", ...args];
   const npx = which("npx");
   const bun = which("bun");
   // npx asks before installing casty (on purpose); --loglevel=error keeps npm
@@ -75,6 +76,7 @@ export function usage(name = packageInfo.name) {
 Frontends (first argument only):
   --casty
       Show the Wayland desktop in the terminal with casty (the default)
+      Page keys pass through; click @ for commands, then q to quit
       Needs a terminal with the Kitty graphics protocol
       Any first argument not listed here also starts casty,
       and every argument goes to casty

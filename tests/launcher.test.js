@@ -13,11 +13,12 @@ test('launcher preserves browser frontend and package runner selection', () => {
   expect(chooseFrontend(['--casty', '--help']).args).toEqual(['--help']);
   expect(chooseFrontend(['--headless', '--socket=test'])).toEqual({ frontend: 'headless', args: ['--socket=test'] });
   const args = ['about:blank', '--', '--socket=test'];
+  const forwarded = ['--no-shortcuts', ...args];
   const which = names => name => names.includes(name) ? `/bin/${name}` : null;
-  expect(castyCommand(args, which(['npx','bun','bunx']))).toEqual(['/bin/npx','--loglevel=error','-p','@drxiaozhi/casty','--','casty',...args]);
-  expect(castyCommand(args, which(['npx','bunx']))).toEqual(['/bin/bunx','@drxiaozhi/casty',...args]);
-  expect(castyCommand(args, which(['bun']))).toEqual(['/bin/bun','x','@drxiaozhi/casty',...args]);
-  expect(castyCommand(args, which([]))).toEqual([process.argv0,'x','@drxiaozhi/casty',...args]);
+  expect(castyCommand(args, which(['npx','bun','bunx']))).toEqual(['/bin/npx','--loglevel=error','-p','@drxiaozhi/casty','--','casty',...forwarded]);
+  expect(castyCommand(args, which(['npx','bunx']))).toEqual(['/bin/bunx','@drxiaozhi/casty',...forwarded]);
+  expect(castyCommand(args, which(['bun']))).toEqual(['/bin/bun','x','@drxiaozhi/casty',...forwarded]);
+  expect(castyCommand(args, which([]))).toEqual([process.argv0,'x','@drxiaozhi/casty',...forwarded]);
 });
 
 test('default executable forwards CASTY_BROWSER and arguments without downloading', async () => {
@@ -27,7 +28,7 @@ test('default executable forwards CASTY_BROWSER and arguments without downloadin
   for (const name of ['npx','bun']) { await Bun.write(join(directory,name),recorder); chmodSync(join(directory,name),0o755); }
   const child = Bun.spawn([process.execPath,entry,'about:blank','--','--socket=test'], {env:{...process.env,PATH:directory,LAUNCH_RESULT:output},stdout:'pipe',stderr:'pipe'});
   expect(await child.exited).toBe(0);
-  expect(await Bun.file(output).json()).toEqual({args:['--loglevel=error','-p','@drxiaozhi/casty','--','casty','about:blank','--','--socket=test'],engine});
+  expect(await Bun.file(output).json()).toEqual({args:['--loglevel=error','-p','@drxiaozhi/casty','--','casty','--no-shortcuts','about:blank','--','--socket=test'],engine});
 });
 
 test('help/version aliases, native placeholders, and headless forwarding', async () => {

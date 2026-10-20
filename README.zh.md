@@ -48,11 +48,13 @@ bun index.js --headless --help
 bun index.js --casty --help
 ```
 
+Land launcher 會自動加上 `--no-shortcuts`，將頁面上的全部按鍵傳給 Wayland client。點網址列左側 **@** 開啟空白 `cmd>`，輸入 `q` 再按 Enter 退出 casty。點網址仍可編輯，編輯時保留快捷鍵；需搭配新版 casty。
+
 也可自行從 Casty 啟動：
 
 ```sh
 export CASTY_BROWSER="$PWD/compositor.js"
-bunx @drxiaozhi/casty about:blank
+bunx @drxiaozhi/casty --no-shortcuts about:blank
 ```
 
 Socket 目錄依序採用明確設定的 `$XDG_RUNTIME_DIR`、`$TMPDIR`、系統暫存目錄。Socket 直接放在該目錄，不另加子目錄；自動選取第一個未被鎖定的名稱：`wayland-buninu`、`wayland-buninu1`、`wayland-buninu2`，依此類推。例如另一個終端：
@@ -155,15 +157,15 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 
 ### 視窗快捷鍵
 
-以下三組對應 [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf)，將 Super 換成 Ctrl+Alt：
+以下三組對應 [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf)，直接使用 Super：
 
 | 快捷鍵 | 操作 |
 | --- | --- |
-| Ctrl+Alt+方向鍵 | 切換到目前工作區中該方向的視窗 |
-| Ctrl+Alt+W | 請求關閉焦點視窗；應用程式仍可能要求確認 |
-| Ctrl+Alt+F | 切換全螢幕，再按一次恢復布局 |
+| Super+方向鍵 | 切換到目前工作區中該方向的視窗 |
+| Super+W | 請求關閉焦點視窗；應用程式仍可能要求確認 |
+| Super+F | 切換全螢幕，再按一次恢復布局 |
 
-全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。目前只啟用這三組快捷鍵；F6–F9 與 W／方向鍵／Tab 測試圖案均已移除。Tab 組合交回應用程式。實測終端對 Tab 只保留 Shift，所以不使用 Ctrl／Alt+Tab 切換視窗。修改後須重啟 compositor。
+全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。目前只啟用這三組快捷鍵；F6–F9 與 W／方向鍵／Tab 測試圖案均已移除。Tab 組合交回應用程式。請在支援 Kitty keyboard 的終端（例如新版 jsgotty 或 bunterm）裡使用新版 casty。Casty 會自動協商並將 Super 以 CDP Meta 傳入，包括按鍵放開事件。Ctrl+Alt 組合現在交回應用程式，不再作為視窗快捷鍵的替代。傳統終端仍能使用，但無法可靠傳遞 Super。修改後須重啟 casty 和 compositor。
 
 協定定義原樣保留，但實作為 JS，並不是 Hyprland C++ 的逐位元複本，也不代表 XML 中每個 request 都已實作。參考來源見 `SOURCES.md`。
 

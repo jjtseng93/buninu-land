@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-20",
+  "fish": 500,
+  "canvas": [
+    1024,
+    1024
+  ],
+  "output": [
+    1024,
+    768
+  ],
+  "measurement": "15 samples of Aquarium displayed FPS at 1-second intervals, browsers run separately; not frontend FPS",
+  "chromium": {
+    "samples": [
+      54,
+      58,
+      57,
+      57,
+      53,
+      57,
+      52,
+      56,
+      57,
+      58,
+      54,
+      57,
+      58,
+      57,
+      55
+    ],
+    "mean": 56,
+    "renderer": "ANGLE (angleisbroken, Adreno (TM) 830, OpenGL ES 3.2)",
+    "size": [
+      1024,
+      1024
+    ]
+  },
+  "firefox_esr": {
+    "samples": [
+      58,
+      60,
+      56,
+      59,
+      59,
+      60,
+      60,
+      62,
+      59,
+      58,
+      59,
+      60,
+      56,
+      57,
+      61
+    ],
+    "mean": 58.93333333333333,
+    "renderer": "Adreno (TM) 650, or similar"
+  }
+}

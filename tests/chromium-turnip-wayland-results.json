@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-20",
+  "browser": "Chromium 155.0.8059.79",
+  "fish": 500,
+  "canvas": [
+    1024,
+    1024
+  ],
+  "landOutput": [
+    1024,
+    768
+  ],
+  "method": "15 one-second samples of displayed Aquarium FPS; one browser at a time, no continuous screenshot stream",
+  "runs": [
+    {
+      "name": "System custom Turnip / ANGLE Vulkan",
+      "samples": [
+        37,
+        38,
+        38,
+        36,
+        37,
+        40,
+        41,
+        36,
+        39,
+        40,
+        48,
+        36,
+        41,
+        37,
+        41
+      ],
+      "mean": 39,
+      "renderer": "ANGLE (Qualcomm, Vulkan 1.4.335 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver)",
+      "featureStatus": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled_force",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "enabled",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "enabled_readback",
+        "webgpu": "enabled_readback",
+        "webgpu_on_vk_via_gl_interop": "enabled",
+        "webnn": "disabled_off"
+      },
+      "glRenderer": "ANGLE (Qualcomm, Vulkan 1.4.335 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver-25.99.99)"
+    },
+    {
+      "name": "System custom Turnip / ANGLE Vulkan + Vulkan,VulkanFromANGLE",
+      "samples": [
+        61,
+        20,
+        50,
+        37,
+        41,
+        40,
+        39,
+        40,
+        39,
+        41,
+        40,
+        39,
+        37,
+        40,
+        41
+      ],
+      "mean": 40.333333333333336,
+      "renderer": "ANGLE (Qualcomm, Vulkan 1.4.335 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver)",
+      "featureStatus": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled_force",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "enabled",
+        "video_encode": "disabled_software",
+        "vulkan": "enabled_on",
+        "webgl": "enabled_readback",
+        "webgpu": "enabled_readback",
+        "webgpu_on_vk_via_gl_interop": "disabled_off",
+        "webnn": "disabled_off"
+      },
+      "glRenderer": "ANGLE (Qualcomm, Vulkan 1.4.335 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver-25.99.99)"
+    },
+    {
+      "name": "Official Mesa 26.2.5 / ANGLE Vulkan",
+      "samples": [
+        61,
+        59,
+        60,
+        60,
+        56,
+        60,
+        60,
+        59,
+        60,
+        62,
+        60,
+        56,
+        56,
+        61,
+        61
+      ],
+      "mean": 59.4,
+      "renderer": "ANGLE (Qualcomm, Vulkan 1.4.354 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver)",
+      "featureStatus": {
+        "2d_canvas": "enabled",
+        "direct_rendering_display_compositor": "disabled_off_ok",
+        "gpu_compositing": "disabled_software",
+        "multiple_raster_threads": "enabled_on",
+        "opengl": "enabled_on",
+        "rasterization": "enabled_force",
+        "raw_draw": "disabled_off_ok",
+        "skia_graphite": "disabled_off",
+        "trees_in_viz": "disabled_off",
+        "video_decode": "enabled",
+        "video_encode": "disabled_software",
+        "vulkan": "disabled_off",
+        "webgl": "enabled_readback",
+        "webgpu": "enabled_readback",
+        "webgpu_on_vk_via_gl_interop": "enabled",
+        "webnn": "disabled_off"
+      },
+      "glRenderer": "ANGLE (Qualcomm, Vulkan 1.4.354 (Adreno (TM) 830 (0x44050001)), turnip Mesa driver-26.2.5)"
+    }
+  ]
+}

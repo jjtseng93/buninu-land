@@ -101,6 +101,8 @@ Engine options (after -- for casty; directly after --headless):
       Output size (default 800,600)
   --linear-dmabuf
       Enable experimental CPU-readable linear DMA-BUF import
+  --drm-device=PATH
+      DRM render node for DMA-BUF v4 feedback; requires --linear-dmabuf
   --lazy-dmabuf
       Defer DMA-BUF reads until capture; requires --linear-dmabuf
   --poll-interval=MS

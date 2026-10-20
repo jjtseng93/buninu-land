@@ -219,6 +219,24 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 
 In the tested proot environment, also set `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`; this disables sandboxing only for the test Chromium process. Regular `bun test` skips these two browser tests but verifies subsurface synchronization, buffer snapshots, stacking, and mode changes.
 
+## Linux DRM client acceleration
+
+On Linux with working Mesa drivers and accessible `/dev/dri/renderD*` nodes, select the GPU Land advertises to Wayland clients:
+
+```sh
+bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129
+# In the client environment, use the socket printed by Land:
+env WAYLAND_DISPLAY=wayland-buninu glmark2-wayland
+# Optional: choose a different GPU by its actual PCI address:
+env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
+```
+
+The device path and PCI address above are examples; identify your hardware with `ls -l /sys/class/drm/renderD*/device` and inspect each device's `vendor`, `device`, and `driver` entries. Render node numbering can change between boots. The selected render node must be accessible in both Land's environment and the client's chroot.
+
+`--drm-device` requires `--linear-dmabuf`. It enables linux-dmabuf v4 default and per-surface feedback, with a read-only format table, the selected DRM device, and LINEAR ARGB8888/XRGB8888 formats. This lets Mesa select a hardware device before applying `DRI_PRIME`; no udev daemon is required. Older clients still receive v3 format/modifier events. Without `--drm-device`, the existing v3 path is unchanged; ordinary launches still use SHM without advertising DMA-BUF. Invalid or inaccessible render nodes fail startup explicitly.
+
+This accelerates **client rendering**. Land still imports CPU-mappable linear buffers, synchronizes and copies their pixels, and composites in software. It does not load EGL, Vulkan, or libdrm. Hardware/driver combinations that cannot supply these buffers remain unsupported. On the tested Intel HD Graphics 5500 + Nouveau NV106 system with Mesa 25.0.7, Intel rendered correctly with changing screenshots. Nouveau selected the NV106 hardware renderer, but its imported images were blank or corrupted, so that NVIDIA path is not yet usable. NVIDIA here uses Mesa Nouveau, not the proprietary NVIDIA driver.
+
 ## Direct Freedreno/KGSL experiment
 
 The installed custom aarch64 Mesa build can render OpenGL directly through Freedreno on Adreno 830. Runtime observation of Termux X11 showed DRI3 DMA-BUF submission; no Termux X11 source was read or copied. Inspection of the installed Mesa EGL binary found that a successful Wayland roundtrip skipped its existing KGSL device-open branch. An isolated, build-specific branch change enabled direct Freedreno rendering and LINEAR DMA-BUF submission to Land, with changing screenshots verified.
@@ -229,7 +247,7 @@ Start a new Land instance with experimental linear DMA-BUF import enabled:
 bun index.js -- --linear-dmabuf --poll-interval=1
 ```
 
-`--linear-dmabuf` advertises v3 with explicit LINEAR ARGB8888/XRGB8888 only. Its importer supports CPU-mappable, single-plane buffers through libc mmap and DMA-BUF read synchronization; unsupported layouts fail import. Default launches do not advertise this protocol. `--poll-interval=1` reduces socket polling latency at increased CPU cost; the default remains 4 ms. `--poll-interval=-1` enables busy polling with `setImmediate`, yielding to the event loop between polls while continuously consuming CPU.
+`--linear-dmabuf` without `--drm-device` advertises v3 with explicit LINEAR ARGB8888/XRGB8888 only. Its importer supports CPU-mappable, single-plane buffers through libc mmap and DMA-BUF read synchronization; unsupported layouts fail import. Default launches do not advertise this protocol. `--poll-interval=1` reduces socket polling latency at increased CPU cost; the default remains 4 ms. `--poll-interval=-1` enables busy polling with `setImmediate`, yielding to the event loop between polls while continuously consuming CPU.
 
 Then run this **inside Debian/proot**, using the actual socket printed by Land:
 

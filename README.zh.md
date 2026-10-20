@@ -215,6 +215,24 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 
 在本次 proot 環境，測試指令還需加上 `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`；此變數只停用測試用 Chromium 的 sandbox。一般 `bun test` 會跳過這兩項瀏覽器測試，但會驗證 subsurface 同步、buffer 快照、堆疊和模式切換。
 
+## Linux DRM client 硬體加速
+
+Linux 已有可用的 Mesa driver 與 `/dev/dri/renderD*` 節點時，可以指定 Land 提供給 Wayland client 的 GPU：
+
+```sh
+bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129
+# 在 client 環境中，使用 Land 印出的 socket：
+env WAYLAND_DISPLAY=wayland-buninu glmark2-wayland
+# 也可以用實際 PCI 位址，另外指定 client 的 GPU：
+env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
+```
+
+以上裝置路徑與 PCI 位址只是範例。可用 `ls -l /sys/class/drm/renderD*/device` 對照硬體，並查看各裝置的 `vendor`、`device` 與 `driver`。Render node 編號可能隨開機改變；Land 的環境與 client 的 chroot 都必須能存取選定的節點。
+
+`--drm-device` 必須搭配 `--linear-dmabuf`，會啟用 linux-dmabuf v4 的預設與各 surface feedback，提供唯讀格式表、選定的 DRM 裝置及 LINEAR ARGB8888／XRGB8888 格式。Mesa 因而能先選到硬體裝置，再套用 `DRI_PRIME`；不需要 udev daemon。舊 client 仍可取得 v3 格式／modifier 事件。不指定 `--drm-device` 時維持原本 v3 路徑；一般無參數啟動仍使用 SHM，不宣告 DMA-BUF。裝置不是 render node 或無法開啟時，啟動會明確失敗。
+
+這加速的是 **client 繪圖**。Land 仍透過 CPU 映射 linear buffer，同步、複製像素，再以軟體合成；不載入 EGL、Vulkan 或 libdrm。不支援提供這類 buffer 的硬體／driver 組合仍無法使用。在 Intel HD Graphics 5500 + Nouveau NV106、Mesa 25.0.7 的真機上，Intel 已確認正確繪圖與持續變化的截圖。Nouveau 雖已選到 NV106 硬體 renderer，但匯入畫面仍為空白或雜訊，因此這條 NVIDIA 路徑目前還不能正常使用。此處 NVIDIA 使用 Mesa Nouveau，並非 NVIDIA 專有 driver。
+
 ## Direct Freedreno/KGSL 實驗
 
 目前安裝的自訂 aarch64 Mesa 可以在 Adreno 830 上直接透過 Freedreno 繪製 OpenGL。觀察 Termux X11 的執行行為可見 DRI3 DMA-BUF 提交；未閱讀或複製 Termux X11 原始碼。檢查已安裝的 Mesa EGL 二進位檔發現，成功的 Wayland roundtrip 會跳過既有 KGSL 裝置開啟分支。對獨立副本調整該分支後，已能直接使用 Freedreno 繪製並向 Land 提交 LINEAR DMA-BUF，也驗證了持續變化的截圖。
@@ -225,7 +243,7 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 bun index.js -- --linear-dmabuf --poll-interval=1
 ```
 
-`--linear-dmabuf` 宣告第 3 版協定，只提供明確指定 LINEAR 的 ARGB8888／XRGB8888 格式。匯入器透過 libc mmap 與 DMA-BUF 讀取同步，支援可由 CPU 映射的單平面 buffer；不支援的配置會匯入失敗。預設啟動不宣告此協定。`--poll-interval=1` 降低 socket 輪詢延遲，但增加 CPU 成本；預設仍為 4 ms。`--poll-interval=-1` 以 `setImmediate` 啟用 busy polling，每次輪詢之間讓出事件迴圈，但會持續消耗 CPU。
+未指定 `--drm-device` 時，`--linear-dmabuf` 宣告第 3 版協定，只提供明確指定 LINEAR 的 ARGB8888／XRGB8888 格式。匯入器透過 libc mmap 與 DMA-BUF 讀取同步，支援可由 CPU 映射的單平面 buffer；不支援的配置會匯入失敗。預設啟動不宣告此協定。`--poll-interval=1` 降低 socket 輪詢延遲，但增加 CPU 成本；預設仍為 4 ms。`--poll-interval=-1` 以 `setImmediate` 啟用 busy polling，每次輪詢之間讓出事件迴圈，但會持續消耗 CPU。
 
 接著在 **Debian/proot 內**執行，使用 Land 印出的實際 socket：
 

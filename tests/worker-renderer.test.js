@@ -100,11 +100,11 @@ test('shared immutable snapshots survive worker captures, replacement and failur
  }finally{direct.close();normal.close();failed.close();}
 });
 
-test('--fast-png is opt-in in both worker and main renderer launch paths',async()=>{
+test('fast PNG defaults on and explicit flags override in both renderer launch paths',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'land-fast-png-')),old=process.env.XDG_RUNTIME_DIR;
  process.env.XDG_RUNTIME_DIR=dir;
- try{for(const extra of [[],['--no-render-worker']])for(const fast of [false,true]){
-  const app=await start(['--remote-debugging-port=0','--window-size=8,8',...extra,...(fast?['--fast-png']:[])]);
+ try{for(const extra of [[],['--no-render-worker']])for(const [flags,fast] of [[[],true],[['--no-fast-png'],false],[['--no-fast-png','--fast-png'],true],[['--fast-png','--no-fast-png'],false]]){
+  const app=await start(['--remote-debugging-port=0','--window-size=8,8',...extra,...flags]);
   try{expect(app.compositor.fastPng).toBe(fast);const png=Buffer.from(await app.context.screenshot(),'base64');if(fast)expect(png[25]).toBe(2);}
   finally{app.close();}
  }}finally{if(old===undefined)delete process.env.XDG_RUNTIME_DIR;else process.env.XDG_RUNTIME_DIR=old;rmSync(dir,{recursive:true,force:true});}

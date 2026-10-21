@@ -16,7 +16,8 @@ export async function start(args = Bun.argv.slice(2)) {
   --drm-device=PATH               DRM render node for v4 feedback (requires --linear-dmabuf)
   --lazy-dmabuf                   Defer DMA-BUF reads (requires --linear-dmabuf)
   --poll-interval=MS              Socket polling, 1–1000 ms; -1 = busy (default 4)
-  --fast-png                      Faster lossless PNG encoding; larger images (opt-in)
+  --fast-png                      Faster lossless PNG encoding; larger images (default)
+  --no-fast-png                   Use the normal PNG encoder
   --no-render-worker              Render on the main thread (worker is default)
   --headless                      Accepted; rendering is always headless
   --help, -h                     Show help
@@ -51,7 +52,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   let server, shutdown, renderer;
   const close = () => { if (!compositor.closed) { compositor.closed = true; server?.stop(true); renderer?.close(); compositor.close(); if (shutdown) { process.removeListener('SIGINT', shutdown); process.removeListener('SIGTERM', shutdown); } } };
   try {
-    compositor.fastPng = args.includes('--fast-png');
+    compositor.fastPng = args.filter(arg => arg === '--fast-png' || arg === '--no-fast-png').at(-1) !== '--no-fast-png';
     renderer = await createRenderer(compositor);
     const context = {
       onFrame(fn) { compositor.onFrame = fn; },

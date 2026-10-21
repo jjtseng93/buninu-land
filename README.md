@@ -263,15 +263,17 @@ Unrotated, whole-buffer surfaces with integer physical positions can use a direc
 
 Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
 
-PNG uses the normal encoder by default. Opt into faster lossless PNG compression with:
+Faster lossless PNG compression is enabled by default. Use the normal encoder when smaller PNG files are preferable:
 
 ```sh
-bun index.js -- --fast-png
-# Combine with your existing engine options, for example:
-bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1 --fast-png
+bun index.js -- --no-fast-png
+# Fast PNG is already enabled with other engine options:
+bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1
 ```
 
-`--fast-png` applies to both renderer modes and the CanvasKit fallback. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
+`--fast-png` remains accepted for explicit selection; when combined with `--no-fast-png`, the last option wins. Fast PNG applies to both renderer modes and the CanvasKit fallback. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
+
+快速無損 PNG 現在預設啟用，適用於 render worker 與主執行緒，包括 CanvasKit fallback。若較重視檔案大小，可使用 `--no-fast-png` 回到一般編碼；`--fast-png` 仍可明確啟用，兩者同時指定時以最後一個為準。此設定只影響 PNG，不改變 raw、JPEG／WebP 或 Casty 截圖間隔。
 
 ## Direct Freedreno/KGSL experiment
 

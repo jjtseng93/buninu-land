@@ -210,3 +210,19 @@ test('physical pixel mapping matches CanvasKit at fractional and integer output 
   }
  }finally{reference.close();renderer.close();}
 },30000);
+
+test('repeated opaque rows and translucent overlays preserve destination pixels across commits', async()=>{
+ const base=surface(false,-4,-4),top=surface(false,0,0);
+ base.viewportDestination=[32,24];top.viewportDestination=[24,24];top.pixels.format=0;
+ const comp={width:32,height:24,deviceScaleFactor:1.5,fastPng:true,input:{},wm:{renderSurfaces:()=>[base,top],origin:s=>s.origin}};
+ const reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
+ const renderer=await createRenderer(comp,{canvasKit:CK});
+ try{
+  for(const alpha of [false,true,false]){
+   top.pixels=surface(alpha,0,0).pixels;top.pixels.format=0;
+   expect(decode(await renderer.screenshot())).toEqual(decode(await reference.screenshot()));
+   top.origin={x:-4,y:4};
+   expect(decode(await renderer.screenshot())).toEqual(decode(await reference.screenshot()));
+  }
+ }finally{reference.close();renderer.close();}
+});

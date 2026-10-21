@@ -192,6 +192,20 @@ PNG：SHM BGRA → CanvasKit 軟體合成 → CanvasKit PNG → CDP base64 → C
 
 JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包裝 → Bun.Image 解碼／編碼 → CDP base64 → Casty 解碼。BMP 包裝會額外複製完整畫面，Bun.Image 再解析 BMP；這是沿用 browser 編碼工具的成本，後續應改為能接收 raw pixels 的編碼路徑。現有 CanvasKit WASM 的 JPEG encoder 無法產生結果，因此不能直接替換這段。Casty 本身也會先取得低解析度變動通知，再要求完整截圖，會有額外編碼工作。
 
+### 協商原始像素
+
+標準 CDP `clip` 可與 RGBA／BGRA 檔案共用；Land 直接合成指定範圍，小數尺寸保留到換算實體像素時才取整。`scale: 1` 不額外縮放，避免終端因一列誤差退回慢路徑。
+
+Casty 也會在 `Page.startScreencast` 傳入私有 `clip`；優先於相容用的 max 限制，以原像素密度裁切、不縮放。寬高是 CSS 單位，實體像素仍隨 device scale 換算。此擴充不是標準 CDP。
+
+更新後的 Casty 與原生 bunterm 會優先協商 raw：先確認檔案傳輸與終端偏好，再實際試一次 CDP 截圖。只有兩端都支援才啟用；失敗回到使用者原本格式設定，auto/file 使用 JPEG 並在靜止後補 PNG，auto/inline 使用 PNG。raw 畫面不經 PNG 壓縮或像素 base64；尺寸與通道排列相符且完全不透明時，原生 bunterm 可直接複製像素，否則退回 CanvasKit。PNG/JPEG/WebP 與一般瀏覽器的 CDP 路徑保持相容。
+
+Land 的私有 `Page.captureScreenshot` 格式 `bgra` 與 `rgba`，在 `data` 回傳 JSON 描述（`version:1`、`transport:"file"`、`path`、`width`、`height`、`stride`、`format`、`bytes`），而非 base64 像素。BGRA 直接寫出合成器既有像素；RGBA 在需要時交換紅藍通道。Casty 透過 Kitty 暫存檔傳輸轉送路徑，由 bunterm 讀取並刪除檔案。產生端管理及清理目錄，包含 render worker 被終止的情況。未消費檔案上限為 16 個／128 MiB；再次產生 raw 畫面時會清除超過 60 秒的遺留檔案。這需要共用本機檔案系統，不能直接用於跨網路的遠端 CDP。
+
+Casty 會驗證回傳的檔案描述及本機檔案；引擎不支援、無法共用檔案、錯誤或逾時時，維持原本設定的編碼。CDP server 與 browser vendor 副本未為此修改。
+
+私有 Kitty 查詢使用 `f=1111970369`，必須收到完整的 `OK Buninu1 bgra` 或 `OK Buninu1 rgba`；只有 `OK` 不足以啟用。即使明確指定其他編碼，raw 仍優先，該編碼改作 fallback。BGRA 顯示使用私有格式；RGBA 維持標準 `f=32`。私有格式與偏好回覆都不是上游 Kitty 標準。原生 bunterm 根據 framebuffer 通道位元配置選擇格式；未知配置保守使用 PNG。瀏覽器中的 jsgotty 不宣告此擴充。
+
 ## Renderer worker
 
 CanvasKit 合成與截圖編碼預設在 Worker 中執行，讓 Wayland socket 所在的執行緒保持可回應。使用 `bun index.js -- --no-render-worker` 或設定 `BUNINU_RENDER_WORKER=0`，可改回主執行緒繪製。先前的實驗環境變數仍受支援，但 `BUNINU_RENDER_WORKER` 的設定優先。
@@ -220,12 +234,14 @@ BUNINU_TEST_BROWSERS=1 bun test tests/browser-clients.test.js
 Linux 已有可用的 Mesa driver 與 `/dev/dri/renderD*` 節點時，可以指定 Land 提供給 Wayland client 的 GPU：
 
 ```sh
-bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129
+bun index.js -- --gpu=/dev/dri/renderD129
 # 在 client 環境中，使用 Land 印出的 socket：
 env WAYLAND_DISPLAY=wayland-buninu glmark2-wayland
 # 也可以用實際 PCI 位址，另外指定 client 的 GPU：
 env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 ```
+
+`--gpu` 是客戶端硬體加速的快捷設定，自動啟用 `--linear-dmabuf --lazy-dmabuf --poll-interval=2`。可用 `--gpu=/dev/dri/renderD129` 或 `--gpu /dev/dri/renderD129` 指定 DRM 裝置；單獨 `--gpu` 不指定裝置，沿用 v3 DMA-BUF 路徑。明確設定的 `--poll-interval=MS` 與 `--drm-device=PATH` 優先於快捷設定，不受參數順序影響。這不是 GPU 合成；2 ms 是此次 Intel HD Graphics 5500 實測的較佳設定，不保證所有硬體都最佳。
 
 以上裝置路徑與 PCI 位址只是範例。可用 `ls -l /sys/class/drm/renderD*/device` 對照硬體，並查看各裝置的 `vendor`、`device` 與 `driver`。Render node 編號可能隨開機改變；Land 的環境與 client 的 chroot 都必須能存取選定的節點。
 
@@ -235,19 +251,19 @@ env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 
 ### 自動 CPU 繪製優化
 
-無旋轉、使用完整 buffer 且實體像素邊界為整數的 surface，預設可以走 JS 直接合成；fractional output scale 下，只要最終為 1:1 或最近鄰放大也可使用。支援堆疊、預乘透明度混色、裁切與符合條件的游標。縮小、裁切來源的 viewport、不支援的次像素座標或變換，以及需要保留原本 XRGB 未使用 alpha 位元組行為的 buffer，會自動退回 CanvasKit。兩條路徑維持相同截圖尺寸；這不是 GPU 合成。
+無旋轉、使用完整 buffer 且實體像素邊界為整數的 surface，預設可以走 JS 直接合成；fractional output scale 下，只要最終為 1:1 或最近鄰放大也可使用。完整 buffer、scale 為 1 的視窗放大後，即使寬高不是整數，也能使用快路徑；只有幾何改變時才透過 CanvasKit 建立小型一維取樣表，後續畫面直接用 JS 合成，維持原本的取樣結果。預設游標也支援縮放與小數位置。支援堆疊、預乘透明度混色、裁切與符合條件的游標。縮小、裁切來源的 viewport、不支援的次像素座標或變換，以及需要保留原本 XRGB 未使用 alpha 位元組行為的 buffer，會自動退回 CanvasKit。兩條路徑維持相同截圖尺寸；這不是 GPU 合成。
 
 Land 會先把 SHM／DMA-BUF 內容複製成自己持有的不可變快照；環境支援時以 `SharedArrayBuffer` 儲存，renderer worker 可以共用快照，省掉另一次完整像素複製。client 持有的映射不會直接分享給 worker，原有 buffer 釋放與讀取同步仍保留。不支援共享 buffer 的 runtime 會使用一般快照。
 
-PNG 預設維持一般編碼方式。若要減少無損 PNG 壓縮的 CPU 成本，可明確開啟：
+快速無損 PNG 預設啟用。若較重視檔案大小，可改回一般編碼：
 
 ```sh
-bun index.js -- --fast-png
-# 也可以加在既有 engine 參數後，例如：
-bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1 --fast-png
+bun index.js -- --no-fast-png
+# 搭配其他 engine 參數時，也已預設啟用快速 PNG：
+bun index.js -- --gpu=/dev/dri/renderD129
 ```
 
-`--fast-png` 同時適用於 worker、主執行緒與 CanvasKit fallback。它以較大的 PNG 檔案換取較低編碼成本，不改 JPEG／WebP 設定或 Casty 截圖間隔。i5-5200U 實驗的 1080p PNG 約大一倍，因此仍須考慮終端與網路吞吐量。這個參數只影響請求 PNG 的截圖，不會強制 Casty 選用 PNG。
+仍可用 `--fast-png` 明確啟用；與 `--no-fast-png` 同時指定時，以最後一個為準。快速 PNG 同時適用於 worker、主執行緒與 CanvasKit fallback。它以較大的 PNG 檔案換取較低編碼成本，不改 JPEG／WebP 設定或 Casty 截圖間隔。i5-5200U 實驗的 1080p PNG 約大一倍，因此仍須考慮終端與網路吞吐量。這個參數只影響請求 PNG 的截圖，不會強制 Casty 選用 PNG。
 
 ## Direct Freedreno/KGSL 實驗
 

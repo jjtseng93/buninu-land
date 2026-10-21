@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { join } from 'node:path';
 import packageInfo from './package.json' with { type: 'json' };
+import { expandGpuOptions } from './lib/gpu-options.js';
 import { runtimeDirectory } from './lib/runtime.js';
 import { CdpServer } from './lib/cdp-server.js';
 
@@ -12,6 +13,7 @@ export async function start(args = Bun.argv.slice(2)) {
   --socket=NAME                   Wayland socket (default: first free wayland-buninu[N])
   --remote-debugging-port=PORT     CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT       Output size (default 800,600)
+  --gpu[=PATH], --gpu [PATH]      Linear DMA-BUF + lazy reads + poll 2 ms; optional DRM node
   --linear-dmabuf                 Experimental CPU-readable linear DMA-BUF import
   --drm-device=PATH               DRM render node for v4 feedback (requires --linear-dmabuf)
   --lazy-dmabuf                   Defer DMA-BUF reads (requires --linear-dmabuf)
@@ -26,6 +28,7 @@ Socket directory: XDG_RUNTIME_DIR, then TMPDIR, then the system temp directory.
 Casty: export CASTY_BROWSER=/absolute/path/compositor.js
 Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   }
+  args = expandGpuOptions(args);
   const linearDmabuf=args.includes('--linear-dmabuf');
   const drmDevice=option('drm-device',null);
   if(args.includes('--drm-device')||drmDevice==='')throw Error('Use --drm-device=/dev/dri/renderD128');

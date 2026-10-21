@@ -196,21 +196,15 @@ PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base6
 
 JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP wrapping → Bun.Image decoding/encoding → CDP base64 → Casty decoding. BMP wrapping adds a full-frame copy, and Bun.Image then parses the BMP. This cost comes from reusing the browser's encoding utilities; a future encoding path should accept raw pixels directly. The existing CanvasKit WASM's JPEG encoder does not produce output, so it cannot directly replace this path. Casty also receives low-resolution change notifications before requesting full screenshots, adding encoding work.
 
-### Negotiated raw frames / 協商原始像素
+### Negotiated raw frames
 
 Standard CDP `clip` also works with RGBA/BGRA files: Land composes the requested rectangle at its output size, retaining fractional dimensions until physical-pixel rounding. `scale: 1` preserves 1:1 pixels; the CDP server and vendor copy remain unchanged.
 
 Casty also sends a private `clip` on `Page.startScreencast`. It takes precedence over fallback max limits and crops at native pixel density, without resizing. Width/height are CSS units; output pixels still follow device scale. This extension is not standard CDP.
 
-Casty 也會在 `Page.startScreencast` 傳入私有 `clip`；優先於相容用的 max 限制，以原像素密度裁切、不縮放。寬高是 CSS 單位，實體像素仍隨 device scale 換算。此擴充不是標準 CDP。
-
-標準 CDP `clip` 可與 RGBA／BGRA 檔案共用；Land 直接合成指定範圍，小數尺寸保留到換算實體像素時才取整。`scale: 1` 不額外縮放，避免終端因一列誤差退回慢路徑。
-
 With updated Casty and native bunterm, raw frames take priority over configured image codecs when both endpoints support them. Casty first verifies file transport and queries the terminal's preferred pixel format; it then tries one CDP screenshot and validates its file descriptor and local file. Unsupported engines, unavailable shared files, errors or timeouts retain the configured codec: auto uses adaptive JPEG with PNG refinement for file transport, PNG for inline. Ordinary CDP PNG/JPEG/WebP behavior is unchanged; the CDP server and browser vendor copy are not patched.
 
 Land's private `Page.captureScreenshot` formats `bgra` and `rgba` return `data` containing a JSON descriptor (`version:1`, `transport:"file"`, `path`, `width`, `height`, `stride`, `format`, `bytes`), not base64 pixels. BGRA writes the direct compositor's existing pixels; RGBA swaps red/blue when needed. Casty forwards the path using Kitty temporary-file transfer, and bunterm reads/unlinks it. The producer owns and cleans the directory even when its render worker is terminated. Outstanding files are limited to 16 / 128 MiB; abandoned files expire after 60 seconds when another raw frame is produced. This needs a shared local filesystem, not remote CDP over a network.
-
-更新後的 Casty 與原生 bunterm 會優先協商 raw：先確認檔案傳輸與終端偏好，再實際試一次 CDP 截圖。只有兩端都支援才啟用；失敗回到使用者原本格式設定，auto/file 使用 JPEG 並在靜止後補 PNG，auto/inline 使用 PNG。raw 畫面不經 PNG 壓縮或像素 base64；尺寸與通道排列相符且完全不透明時，原生 bunterm 可直接複製像素，否則退回 CanvasKit。PNG/JPEG/WebP 與一般瀏覽器的 CDP 路徑保持相容。
 
 The private Kitty query uses `f=1111970369` and requires the exact reply `OK Buninu1 bgra` or `OK Buninu1 rgba`; plain `OK` is insufficient. Raw takes priority even over an explicit configured codec, which becomes its fallback. BGRA placement uses the private format; RGBA retains standard `f=32`. Neither this private format nor the preference reply is an upstream Kitty standard. Native bunterm chooses from framebuffer channel bitfields; unknown layouts conservatively use PNG. Browser jsgotty does not advertise this extension.
 
@@ -242,12 +236,14 @@ In the tested proot environment, also set `BUNINU_TEST_CHROMIUM_NO_SANDBOX=1`; t
 On Linux with working Mesa drivers and accessible `/dev/dri/renderD*` nodes, select the GPU Land advertises to Wayland clients:
 
 ```sh
-bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129
+bun index.js -- --gpu=/dev/dri/renderD129
 # In the client environment, use the socket printed by Land:
 env WAYLAND_DISPLAY=wayland-buninu glmark2-wayland
 # Optional: choose a different GPU by its actual PCI address:
 env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 ```
+
+The `--gpu` preset enables `--linear-dmabuf --lazy-dmabuf --poll-interval=2`. Use `--gpu=/dev/dri/renderD129` or `--gpu /dev/dri/renderD129` to also select the DRM render node. Bare `--gpu` leaves the DRM device unspecified and uses the existing v3 DMA-BUF path. Explicit `--poll-interval=MS` and `--drm-device=PATH` override preset defaults regardless of argument order. The 2 ms preset favored terminal display throughput in the Intel HD Graphics 5500 experiment; it is not a universal hardware optimum.
 
 The device path and PCI address above are examples; identify your hardware with `ls -l /sys/class/drm/renderD*/device` and inspect each device's `vendor`, `device`, and `driver` entries. Render node numbering can change between boots. The selected render node must be accessible in both Land's environment and the client's chroot.
 
@@ -259,8 +255,6 @@ This accelerates **client rendering**. Land still imports CPU-mappable linear bu
 
 Unrotated, whole-buffer surfaces with integer physical positions can use a direct JS compositor by default, including fractional output scales when the final mapping is 1:1 or nearest-neighbour upscaling. Whole-buffer scale-1 surfaces also support noninteger enlarged dimensions: small, cached one-dimensional CanvasKit sampling maps preserve the original pixel selection, while each frame is composed directly in JS. The built-in pointer supports scaled and fractional positions. It handles stacking, premultiplied transparency, clipping and compatible cursors. Downscaling, cropped viewports, unsupported subpixel geometry or transforms, and buffers whose unused XRGB alpha bytes need the legacy behavior automatically use CanvasKit. Both paths keep the same screenshot dimensions; this does not enable GPU composition.
 
-直接合成預設啟用。完整 buffer、scale 為 1 的視窗放大後，即使寬高不是整數，也能使用快路徑；只有幾何改變時才透過 CanvasKit 建立小型一維取樣表，後續畫面直接用 JS 合成，維持原本的取樣結果。預設游標也支援縮放與小數位置。視窗本身的非整數實體位置、縮小、旋轉等未支援情況仍自動退回 CanvasKit；這不是 GPU 合成。
-
 Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
 
 Faster lossless PNG compression is enabled by default. Use the normal encoder when smaller PNG files are preferable:
@@ -268,12 +262,10 @@ Faster lossless PNG compression is enabled by default. Use the normal encoder wh
 ```sh
 bun index.js -- --no-fast-png
 # Fast PNG is already enabled with other engine options:
-bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1
+bun index.js -- --gpu=/dev/dri/renderD129
 ```
 
 `--fast-png` remains accepted for explicit selection; when combined with `--no-fast-png`, the last option wins. Fast PNG applies to both renderer modes and the CanvasKit fallback. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
-
-快速無損 PNG 現在預設啟用，適用於 render worker 與主執行緒，包括 CanvasKit fallback。若較重視檔案大小，可使用 `--no-fast-png` 回到一般編碼；`--fast-png` 仍可明確啟用，兩者同時指定時以最後一個為準。此設定只影響 PNG，不改變 raw、JPEG／WebP 或 Casty 截圖間隔。
 
 ## Direct Freedreno/KGSL experiment
 

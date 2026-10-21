@@ -12,7 +12,7 @@ test('launcher preserves browser frontend and package runner selection', () => {
   expect(chooseFrontend([])).toEqual({ frontend: 'casty', args: [] });
   expect(chooseFrontend(['--casty', '--help']).args).toEqual(['--help']);
   expect(chooseFrontend(['--headless', '--socket=test'])).toEqual({ frontend: 'headless', args: ['--socket=test'] });
-  const args = ['about:blank', '--', '--socket=test'];
+  const args = ['about:blank', '--', '--socket=test', '--gpu', '/dev/dri/renderD129'];
   const forwarded = ['--no-shortcuts', ...args];
   const which = names => name => names.includes(name) ? `/bin/${name}` : null;
   expect(castyCommand(args, which(['npx','bun','bunx']))).toEqual(['/bin/npx','--loglevel=error','-p','@drxiaozhi/casty','--','casty',...forwarded]);
@@ -35,7 +35,7 @@ test('help/version aliases, native placeholders, and headless forwarding', async
   for (const path of [entry,engine]) for (const flag of ['--help','-h','--version','-V']) {
     const child=Bun.spawn([process.execPath,path,flag],{stdout:'pipe',stderr:'pipe'});
     expect(await child.exited).toBe(0); const output=await new Response(child.stdout).text();expect(output).toContain('buninu-land');
-    if(['--help','-h'].includes(flag))for(const option of ['--linear-dmabuf','--lazy-dmabuf','--poll-interval','--no-render-worker'])expect(output).toContain(option);
+    if(['--help','-h'].includes(flag))for(const option of ['--gpu','--linear-dmabuf','--lazy-dmabuf','--poll-interval','--no-fast-png','--no-render-worker'])expect(output).toContain(option);
   }
   for (const frontend of ['--win32','--gtk','--appkit','--qt']) {
     const child=Bun.spawn([process.execPath,entry,frontend],{stdout:'pipe',stderr:'pipe'});

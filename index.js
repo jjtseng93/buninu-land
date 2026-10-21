@@ -99,6 +99,8 @@ Engine options (after -- for casty; directly after --headless):
       CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT
       Output size (default 800,600)
+  --gpu[=PATH], --gpu [PATH]
+      Linear DMA-BUF + lazy reads + poll 2 ms; optional DRM render node
   --linear-dmabuf
       Enable experimental CPU-readable linear DMA-BUF import
   --drm-device=PATH
@@ -108,7 +110,9 @@ Engine options (after -- for casty; directly after --headless):
   --poll-interval=MS
       Socket polling: 1–1000 ms; -1 = busy polling (default 4)
   --fast-png
-      Faster lossless PNG encoding; larger images (opt-in)
+      Faster lossless PNG encoding; larger images (default)
+  --no-fast-png
+      Use the normal PNG encoder
   --no-render-worker
       Render on the main thread instead of the default worker
 

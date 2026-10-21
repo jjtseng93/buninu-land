@@ -32,9 +32,17 @@ test.skipIf(!Bun.which('weston-simple-shm'))('CDP window shortcuts focus, fullsc
     await press('ArrowLeft');expect(wm.focused).toBe(left);expect(left.fullscreen).toBe(true);expect(right.fullscreen).toBe(false);
     await press('ArrowRight');expect(wm.focused).toBe(right);expect(right.fullscreen).toBe(true);
     await press('f');expect(right.fullscreen).toBe(false);expect(right.box).toEqual(box);
+    await press('T',4);expect(right.floating).toBe(true);
+    await press('f',5);expect(right.maximized).toBe(true);
+    await press('f',5);expect(right.maximized).toBe(false);
+    await press('t');expect(right.floating).toBe(false);
+    await press('@',12);expect(wm.workspace).toBe(2);expect(right.workspace).toBe(2);
+    await press('!',12);expect(wm.workspace).toBe(1);expect(right.workspace).toBe(1);
+    await press('Tab',1);expect(wm.focused).toBe(left);
+    await press('Tab',9);expect(wm.focused).toBe(right);
     // Tab and W without the exact modifiers now belong to applications.
     for(const mods of [0,1,2,3,5,6,7,8,9,10,11,12,13,14,15])expect(wm.shortcut('w',mods)).toBe(false);
-    for(const mods of [0,1,2,3,4,8,9,10,11])expect(wm.shortcut('Tab',mods)).toBe(false);
+    for(const mods of [0,2,3,4,8,10,11])expect(wm.shortcut('Tab',mods)).toBe(false);
     await press('w');await waitFor(()=>second.exitCode!==null&&wm.visible.length===1);
     expect(second.exitCode).toBe(0);expect(first.exitCode).toBeNull();
     expect(wm.focused).toBe(left);expect(left.box).toEqual({x:8,y:8,width:784,height:584});

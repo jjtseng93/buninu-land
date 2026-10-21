@@ -161,15 +161,24 @@ Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, foc
 
 ### Window shortcuts
 
-These three bindings follow [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf), using Super directly:
+These bindings connect existing Land window actions to [Omarchy's window bindings](https://github.com/omacom/omarchy/blob/quattro/default/hypr/bindings/tiling.lua):
 
 | Shortcut | Action |
 | --- | --- |
 | Super+Arrow | Focus a window in that direction on the current workspace |
-| Super+W | Request that the focused window close; applications may ask for confirmation |
+| Super+W/Q | Request that the focused window close; applications may ask for confirmation |
 | Super+F | Toggle fullscreen; toggle again to restore the layout |
+| Super+T | Toggle floating/tiling |
+| Super+Alt+F | Toggle maximization across Land's single output |
+| Super+Shift+Arrow | Swap with the tiled window in that direction |
+| Alt+Tab / Alt+Shift+Tab | Cycle forward/backward through windows on the current workspace |
+| Super+1–9 | Switch workspace |
+| Super+Shift+1–9 | Move the focused window to that workspace and follow it |
+| Super+- / = | Shrink/grow horizontally by 100 logical pixels; tiled windows adjust the split ratio |
+| Super+Shift+- / = | Shrink/grow vertically by 100 logical pixels; tiled windows adjust the split ratio |
+| Add Alt / Ctrl to the resize bindings | Use increments of 25 / 300 |
 
-Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Only these three bindings are currently enabled; F6–F9 and the temporary W/arrow/Tab visual probes are removed. Tab combinations pass through to applications. Use an updated casty inside a Kitty-keyboard-capable terminal such as jsgotty or bunterm. Casty negotiates the protocol automatically and forwards Super as CDP Meta, including key releases. Ctrl+Alt combinations now pass through to applications; they are no longer window-shortcut aliases. Legacy terminals still work, but cannot reliably convey Super. Restart both casty and the compositor to load changes.
+Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Window cycling also transfers fullscreen. Workspaces remain limited to 1–9; Super+0, Super+Tab, groups, scratchpads and other unimplemented combinations are not intercepted. Modifiers must match exactly; unmatched keys pass through to applications. Resizing uses Land’s existing floating size limits and tiled split-ratio algorithm, not full Hyprland resize semantics. Use an updated casty inside a Kitty-keyboard-capable terminal such as jsgotty or bunterm. Casty negotiates the protocol automatically and forwards Super as CDP Meta, including key releases. Ctrl+Alt combinations now pass through to applications; they are no longer window-shortcut aliases. Legacy terminals still work, but cannot reliably convey Super. Restart both casty and the compositor to load changes.
 
 Protocol definitions are preserved unchanged, but their implementation is JavaScript, not a byte-for-byte copy of Hyprland's C++. Not every request in the XML is implemented. See `SOURCES.md` for references.
 

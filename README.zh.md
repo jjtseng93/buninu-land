@@ -157,15 +157,24 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 
 ### 視窗快捷鍵
 
-以下三組對應 [Omarchy v3.3.0](https://github.com/basecamp/omarchy/blob/v3.3.0/default/hypr/bindings/tiling-v2.conf)，直接使用 Super：
+以下快捷鍵接上 Land 已有的視窗操作，對照 [Omarchy 的視窗綁定](https://github.com/omacom/omarchy/blob/quattro/default/hypr/bindings/tiling.lua)：
 
 | 快捷鍵 | 操作 |
 | --- | --- |
 | Super+方向鍵 | 切換到目前工作區中該方向的視窗 |
-| Super+W | 請求關閉焦點視窗；應用程式仍可能要求確認 |
+| Super+W／Q | 請求關閉焦點視窗；應用程式仍可能要求確認 |
 | Super+F | 切換全螢幕，再按一次恢復布局 |
+| Super+T | 切換浮動／平鋪 |
+| Super+Alt+F | 切換最大化；使用 Land 的整個單一輸出區域 |
+| Super+Shift+方向鍵 | 與該方向的平鋪視窗交換位置 |
+| Alt+Tab／Alt+Shift+Tab | 在目前工作區向前／向後循環視窗 |
+| Super+1–9 | 切換工作區 |
+| Super+Shift+1–9 | 搬移焦點視窗並跟隨到工作區 |
+| Super+-／= | 水平方向縮小／放大 100 邏輯像素；平鋪時調整分割比例 |
+| Super+Shift+-／= | 垂直方向縮小／放大 100 邏輯像素；平鋪時調整分割比例 |
+| 上述大小調整再加 Alt／Ctrl | 改用 25／300 的調整量 |
 
-全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。目前只啟用這三組快捷鍵；F6–F9 與 W／方向鍵／Tab 測試圖案均已移除。Tab 組合交回應用程式。請在支援 Kitty keyboard 的終端（例如新版 jsgotty 或 bunterm）裡使用新版 casty。Casty 會自動協商並將 Super 以 CDP Meta 傳入，包括按鍵放開事件。Ctrl+Alt 組合現在交回應用程式，不再作為視窗快捷鍵的替代。傳統終端仍能使用，但無法可靠傳遞 Super。修改後須重啟 casty 和 compositor。
+全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。循環視窗在全螢幕時也會轉移全螢幕。工作區目前限 1–9；不攔截 Super+0、Super+Tab、群組、scratchpad 或其他尚未實作的組合。修飾鍵必須完全符合表列組合，其他按鍵交回應用程式。大小調整沿用 Land 既有的浮動尺寸限制與平鋪比例演算法，不代表完整複製 Hyprland 的 resize 行為。請在支援 Kitty keyboard 的終端（例如新版 jsgotty 或 bunterm）裡使用新版 casty。Casty 會自動協商並將 Super 以 CDP Meta 傳入，包括按鍵放開事件。Ctrl+Alt 組合現在交回應用程式，不再作為視窗快捷鍵的替代。傳統終端仍能使用，但無法可靠傳遞 Super。修改後須重啟 casty 和 compositor。
 
 協定定義原樣保留，但實作為 JS，並不是 Hyprland C++ 的逐位元複本，也不代表 XML 中每個 request 都已實作。參考來源見 `SOURCES.md`。
 

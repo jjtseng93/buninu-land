@@ -196,7 +196,7 @@ test('physical pixel mapping matches CanvasKit at fractional and integer output 
  const reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
  const renderer=await createRenderer(comp,{canvasKit:CK});
  try {
-  for(const factor of [1,1.25,1.5,1.625,2])for(const mode of ['upscale','alpha','clip','physical','fractional-snap']){
+  for(const factor of [1,1.25,1.5,1.625,1.75,2])for(const mode of ['upscale','alpha','clip','physical','fractional-snap']){
    comp.deviceScaleFactor=factor;
    const s=surface(mode==='alpha',0,0);visible=[s];
    s.viewportDestination=[24,24];
@@ -242,4 +242,26 @@ test('experimental RGBA capture matches PNG pixels without changing standard scr
    expect(await renderer.screenshot({format:'png'})).toBe(before);
   }
  }finally{renderer.close();}
+});
+
+test('fractional enlargement and scaled pointer match CanvasKit without fallback',async()=>{
+ const s=surface(false,0,0),labels=[];
+ const comp={width:32,height:24,deviceScaleFactor:1,fastPng:true,input:{},measure:n=>labels.push(n),wm:{renderSurfaces:()=>[s],origin:s=>s.origin}};
+ const reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
+ const renderer=await createRenderer(comp,{canvasKit:CK});
+ try{
+  for(const alpha of [false,true])for(const origin of [0,8,-8])for(const factor of [1.25,1.5,1.625,1.75,2.25]){
+   s.pixels=surface(alpha,0,0).pixels;s.origin={x:origin,y:origin};
+   comp.deviceScaleFactor=factor;
+   for(const position of [null,[0,0],[2.5,3.5],[-2,-3],[31,23],[100,100]]){
+    comp.input=position?{pointer:true,x:position[0],y:position[1]}:{};
+    const expected=decode(await reference.screenshot());
+    labels.length=0;
+    const actual=decode(await renderer.screenshot());
+    const diffs=[];for(let i=0;i<actual.length;i++)if(actual[i]!==expected[i])diffs.push([i,actual[i],expected[i]]);
+    expect(diffs.slice(0,12),JSON.stringify({factor,position,count:diffs.length})).toEqual([]);
+    expect(labels.some(n=>n.endsWith(':direct-compose'))).toBe(true);
+   }
+  }
+ }finally{reference.close();renderer.close();}
 });

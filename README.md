@@ -249,7 +249,9 @@ This accelerates **client rendering**. Land still imports CPU-mappable linear bu
 
 ### Automatic CPU rendering optimizations
 
-Unrotated, whole-buffer surfaces with integer physical bounds can use a direct JS compositor by default, including fractional output scales when the final mapping is 1:1 or nearest-neighbour upscaling. It handles stacking, premultiplied transparency, clipping and compatible cursors. Downscaling, cropped viewports, unsupported subpixel geometry or transforms, and buffers whose unused XRGB alpha bytes need the legacy behavior automatically use CanvasKit. Both paths keep the same screenshot dimensions; this does not enable GPU composition.
+Unrotated, whole-buffer surfaces with integer physical positions can use a direct JS compositor by default, including fractional output scales when the final mapping is 1:1 or nearest-neighbour upscaling. Whole-buffer scale-1 surfaces also support noninteger enlarged dimensions: small, cached one-dimensional CanvasKit sampling maps preserve the original pixel selection, while each frame is composed directly in JS. The built-in pointer supports scaled and fractional positions. It handles stacking, premultiplied transparency, clipping and compatible cursors. Downscaling, cropped viewports, unsupported subpixel geometry or transforms, and buffers whose unused XRGB alpha bytes need the legacy behavior automatically use CanvasKit. Both paths keep the same screenshot dimensions; this does not enable GPU composition.
+
+直接合成預設啟用。完整 buffer、scale 為 1 的視窗放大後，即使寬高不是整數，也能使用快路徑；只有幾何改變時才透過 CanvasKit 建立小型一維取樣表，後續畫面直接用 JS 合成，維持原本的取樣結果。預設游標也支援縮放與小數位置。視窗本身的非整數實體位置、縮小、旋轉等未支援情況仍自動退回 CanvasKit；這不是 GPU 合成。
 
 Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
 

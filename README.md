@@ -198,11 +198,19 @@ JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP
 
 ### Negotiated raw frames / 協商原始像素
 
+Standard CDP `clip` also works with RGBA/BGRA files: Land composes the requested rectangle at its output size, retaining fractional dimensions until physical-pixel rounding. `scale: 1` preserves 1:1 pixels; the CDP server and vendor copy remain unchanged.
+
+Casty also sends a private `clip` on `Page.startScreencast`. It takes precedence over fallback max limits and crops at native pixel density, without resizing. Width/height are CSS units; output pixels still follow device scale. This extension is not standard CDP.
+
+Casty 也會在 `Page.startScreencast` 傳入私有 `clip`；優先於相容用的 max 限制，以原像素密度裁切、不縮放。寬高是 CSS 單位，實體像素仍隨 device scale 換算。此擴充不是標準 CDP。
+
+標準 CDP `clip` 可與 RGBA／BGRA 檔案共用；Land 直接合成指定範圍，小數尺寸保留到換算實體像素時才取整。`scale: 1` 不額外縮放，避免終端因一列誤差退回慢路徑。
+
 With updated Casty and native bunterm, raw frames take priority over configured image codecs when both endpoints support them. Casty first verifies file transport and queries the terminal's preferred pixel format; it then tries one CDP screenshot and validates its file descriptor and local file. Unsupported engines, unavailable shared files, errors or timeouts retain the configured codec: auto uses adaptive JPEG with PNG refinement for file transport, PNG for inline. Ordinary CDP PNG/JPEG/WebP behavior is unchanged; the CDP server and browser vendor copy are not patched.
 
 Land's private `Page.captureScreenshot` formats `bgra` and `rgba` return `data` containing a JSON descriptor (`version:1`, `transport:"file"`, `path`, `width`, `height`, `stride`, `format`, `bytes`), not base64 pixels. BGRA writes the direct compositor's existing pixels; RGBA swaps red/blue when needed. Casty forwards the path using Kitty temporary-file transfer, and bunterm reads/unlinks it. The producer owns and cleans the directory even when its render worker is terminated. Outstanding files are limited to 16 / 128 MiB; abandoned files expire after 60 seconds when another raw frame is produced. This needs a shared local filesystem, not remote CDP over a network.
 
-更新後的 Casty 與原生 bunterm 會優先協商 raw：先確認檔案傳輸與終端偏好，再實際試一次 CDP 截圖。只有兩端都支援才啟用；失敗回到使用者原本格式設定，auto/file 使用 JPEG 並在靜止後補 PNG，auto/inline 使用 PNG。raw 畫面不經 PNG 壓縮或像素 base64，但 bunterm 仍透過 CanvasKit 繪製，並非直接將檔案寫進 fb0。PNG/JPEG/WebP 與一般瀏覽器的 CDP 路徑保持相容。
+更新後的 Casty 與原生 bunterm 會優先協商 raw：先確認檔案傳輸與終端偏好，再實際試一次 CDP 截圖。只有兩端都支援才啟用；失敗回到使用者原本格式設定，auto/file 使用 JPEG 並在靜止後補 PNG，auto/inline 使用 PNG。raw 畫面不經 PNG 壓縮或像素 base64；尺寸與通道排列相符且完全不透明時，原生 bunterm 可直接複製像素，否則退回 CanvasKit。PNG/JPEG/WebP 與一般瀏覽器的 CDP 路徑保持相容。
 
 The private Kitty query uses `f=1111970369` and requires the exact reply `OK Buninu1 bgra` or `OK Buninu1 rgba`; plain `OK` is insufficient. Raw takes priority even over an explicit configured codec, which becomes its fallback. BGRA placement uses the private format; RGBA retains standard `f=32`. Neither this private format nor the preference reply is an upstream Kitty standard. Native bunterm chooses from framebuffer channel bitfields; unknown layouts conservatively use PNG. Browser jsgotty does not advertise this extension.
 

@@ -233,6 +233,22 @@ env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 
 這加速的是 **client 繪圖**。Land 仍透過 CPU 映射 linear buffer，同步、複製像素，再以軟體合成；不載入 EGL、Vulkan 或 libdrm。不支援提供這類 buffer 的硬體／driver 組合仍無法使用。在 Intel HD Graphics 5500 + Nouveau NV106、Mesa 25.0.7 的真機上，Intel 已確認正確繪圖與持續變化的截圖。Nouveau 雖已選到 NV106 硬體 renderer，但匯入畫面仍為空白或雜訊，因此這條 NVIDIA 路徑目前還不能正常使用。此處 NVIDIA 使用 Mesa Nouveau，並非 NVIDIA 專有 driver。
 
+### 自動 CPU 繪製優化
+
+無旋轉、使用完整 buffer 且實體像素邊界為整數的 surface，預設可以走 JS 直接合成；fractional output scale 下，只要最終為 1:1 或最近鄰放大也可使用。支援堆疊、預乘透明度混色、裁切與符合條件的游標。縮小、裁切來源的 viewport、不支援的次像素座標或變換，以及需要保留原本 XRGB 未使用 alpha 位元組行為的 buffer，會自動退回 CanvasKit。兩條路徑維持相同截圖尺寸；這不是 GPU 合成。
+
+Land 會先把 SHM／DMA-BUF 內容複製成自己持有的不可變快照；環境支援時以 `SharedArrayBuffer` 儲存，renderer worker 可以共用快照，省掉另一次完整像素複製。client 持有的映射不會直接分享給 worker，原有 buffer 釋放與讀取同步仍保留。不支援共享 buffer 的 runtime 會使用一般快照。
+
+PNG 預設維持一般編碼方式。若要減少無損 PNG 壓縮的 CPU 成本，可明確開啟：
+
+```sh
+bun index.js -- --fast-png
+# 也可以加在既有 engine 參數後，例如：
+bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1 --fast-png
+```
+
+`--fast-png` 同時適用於 worker、主執行緒與 CanvasKit fallback。它以較大的 PNG 檔案換取較低編碼成本，不改 JPEG／WebP 設定或 Casty 截圖間隔。i5-5200U 實驗的 1080p PNG 約大一倍，因此仍須考慮終端與網路吞吐量。這個參數只影響請求 PNG 的截圖，不會強制 Casty 選用 PNG。
+
 ## Direct Freedreno/KGSL 實驗
 
 目前安裝的自訂 aarch64 Mesa 可以在 Adreno 830 上直接透過 Freedreno 繪製 OpenGL。觀察 Termux X11 的執行行為可見 DRI3 DMA-BUF 提交；未閱讀或複製 Termux X11 原始碼。檢查已安裝的 Mesa EGL 二進位檔發現，成功的 Wayland roundtrip 會跳過既有 KGSL 裝置開啟分支。對獨立副本調整該分支後，已能直接使用 Freedreno 繪製並向 Land 提交 LINEAR DMA-BUF，也驗證了持續變化的截圖。

@@ -13,13 +13,13 @@ test('cache follows immutable pixels, geometry, stacking, cursor and output dime
  const red={pixels:pixels(0,0,255),scale:1,transform:0,x:0,y:0},blue={pixels:pixels(255,0,0),scale:1,transform:0,x:0,y:0};
  let visible=[red];
  const comp={width:8,height:8,input:{},wm:{renderSurfaces:()=>visible,origin:s=>({x:s.x,y:s.y})}};
- const renderer=await createRenderer(comp,{canvasKit:CK});
+ const renderer=await createRenderer(comp,{canvasKit:CK,directComposition:false});
  const capture=async(opts={})=>{
   const data=await renderer.screenshot(opts),image=CK.MakeImageFromEncoded(Buffer.from(data,'base64'));
   try{return {data,bytes:image.readPixels(0,0,{width:image.width(),height:image.height(),colorType:CK.ColorType.RGBA_8888,alphaType:CK.AlphaType.Unpremul,colorSpace:CK.ColorSpace.SRGB})};}finally{image.delete();}
  };
  try {
-  const previewOnly=await createRenderer(comp,{canvasKit:CK});
+  const previewOnly=await createRenderer(comp,{canvasKit:CK,directComposition:false});
   await previewOnly.screenshot({maxWidth:4});expect(targets).toBe(1);
   red.x=1;await previewOnly.screenshot({maxWidth:4});expect(targets).toBe(1);
   previewOnly.close();red.x=0;uploads=targets=draws=imageDeletes=0;

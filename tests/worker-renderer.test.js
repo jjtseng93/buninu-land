@@ -79,3 +79,33 @@ test('launcher defaults to worker, with explicit CLI and environment opt-outs',a
   process.env.BUNINU_RENDER_WORKER='0';expect(await capture([])).toBe(false);
  }finally{keys.forEach((k,i)=>{if(old[i]===undefined)delete process.env[k];else process.env[k]=old[i];});rmSync(dir,{recursive:true,force:true});}
 });
+
+import {allocateSnapshot} from '../lib/snapshot.js';
+test('shared immutable snapshots survive worker captures, replacement and failure fallback',async()=>{
+ const bytes=allocateSnapshot(16);bytes.set([0,0,255,255,0,255,0,255,255,0,0,255,255,255,255,255]);
+ expect(bytes.buffer instanceof SharedArrayBuffer).toBe(true);
+ const s={pixels:{bytes,width:2,height:2,stride:8,format:1},scale:1,transform:0};
+ const comp={width:8,height:8,fastPng:true,input:{},wm:{renderSurfaces:()=>[s],origin:()=>({x:0,y:0})}};
+ const direct=await createRenderer(comp),normal=await createWorkerRenderer(comp);
+ const failed=await createWorkerRenderer(comp,{warn:()=>{},workerFactory:()=>new Worker(new URL('./fixtures/renderer-worker-failure.js',import.meta.url),{workerData:'capture-exit'})});
+ try{
+  const before=Buffer.from(bytes),expected=await direct.screenshot();
+  expect(await normal.screenshot()).toBe(expected);
+  expect(await failed.screenshot()).toBe(expected);expect(failed.backend).toBe('main');
+  expect(bytes).toEqual(before);expect(bytes.byteLength).toBe(16);
+  const next=allocateSnapshot(16);next.fill(255);s.pixels={...s.pixels,bytes:next};
+  const replacement=await normal.screenshot();expect(replacement).not.toBe(expected);
+  expect(replacement).toBe(await direct.screenshot());expect(bytes).toEqual(before);
+  comp.fastPng=false;expect(await normal.screenshot()).toBe(await direct.screenshot());
+ }finally{direct.close();normal.close();failed.close();}
+});
+
+test('--fast-png is opt-in in both worker and main renderer launch paths',async()=>{
+ const dir=mkdtempSync(join(tmpdir(),'land-fast-png-')),old=process.env.XDG_RUNTIME_DIR;
+ process.env.XDG_RUNTIME_DIR=dir;
+ try{for(const extra of [[],['--no-render-worker']])for(const fast of [false,true]){
+  const app=await start(['--remote-debugging-port=0','--window-size=8,8',...extra,...(fast?['--fast-png']:[])]);
+  try{expect(app.compositor.fastPng).toBe(fast);const png=Buffer.from(await app.context.screenshot(),'base64');if(fast)expect(png[25]).toBe(2);}
+  finally{app.close();}
+ }}finally{if(old===undefined)delete process.env.XDG_RUNTIME_DIR;else process.env.XDG_RUNTIME_DIR=old;rmSync(dir,{recursive:true,force:true});}
+});

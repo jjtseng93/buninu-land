@@ -107,6 +107,8 @@ Engine options (after -- for casty; directly after --headless):
       Defer DMA-BUF reads until capture; requires --linear-dmabuf
   --poll-interval=MS
       Socket polling: 1–1000 ms; -1 = busy polling (default 4)
+  --fast-png
+      Faster lossless PNG encoding; larger images (opt-in)
   --no-render-worker
       Render on the main thread instead of the default worker
 

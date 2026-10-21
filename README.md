@@ -237,6 +237,22 @@ The device path and PCI address above are examples; identify your hardware with 
 
 This accelerates **client rendering**. Land still imports CPU-mappable linear buffers, synchronizes and copies their pixels, and composites in software. It does not load EGL, Vulkan, or libdrm. Hardware/driver combinations that cannot supply these buffers remain unsupported. On the tested Intel HD Graphics 5500 + Nouveau NV106 system with Mesa 25.0.7, Intel rendered correctly with changing screenshots. Nouveau selected the NV106 hardware renderer, but its imported images were blank or corrupted, so that NVIDIA path is not yet usable. NVIDIA here uses Mesa Nouveau, not the proprietary NVIDIA driver.
 
+### Automatic CPU rendering optimizations
+
+Unrotated, whole-buffer surfaces with integer physical bounds can use a direct JS compositor by default, including fractional output scales when the final mapping is 1:1 or nearest-neighbour upscaling. It handles stacking, premultiplied transparency, clipping and compatible cursors. Downscaling, cropped viewports, unsupported subpixel geometry or transforms, and buffers whose unused XRGB alpha bytes need the legacy behavior automatically use CanvasKit. Both paths keep the same screenshot dimensions; this does not enable GPU composition.
+
+Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
+
+PNG uses the normal encoder by default. Opt into faster lossless PNG compression with:
+
+```sh
+bun index.js -- --fast-png
+# Combine with your existing engine options, for example:
+bun index.js -- --linear-dmabuf --drm-device=/dev/dri/renderD129 --lazy-dmabuf --poll-interval=1 --fast-png
+```
+
+`--fast-png` applies to both renderer modes and the CanvasKit fallback. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
+
 ## Direct Freedreno/KGSL experiment
 
 The installed custom aarch64 Mesa build can render OpenGL directly through Freedreno on Adreno 830. Runtime observation of Termux X11 showed DRI3 DMA-BUF submission; no Termux X11 source was read or copied. Inspection of the installed Mesa EGL binary found that a successful Wayland roundtrip skipped its existing KGSL device-open branch. An isolated, build-specific branch change enabled direct Freedreno rendering and LINEAR DMA-BUF submission to Land, with changing screenshots verified.

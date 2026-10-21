@@ -13,7 +13,7 @@ test('cached surfaces stay bounded and release pixels on close, including render
     if (fail) throw Error('intentional render failure');
     return [];
   } } };
-  const renderer = await createRenderer(compositor, { canvasKit: CK });
+  const renderer = await createRenderer(compositor, { canvasKit: CK, directComposition: false });
   try {
     for (let i = 0; i < 60; i++) {
       const png = Buffer.from(await renderer.screenshot(), 'base64');

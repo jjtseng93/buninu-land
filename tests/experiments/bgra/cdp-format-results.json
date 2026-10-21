@@ -1,0 +1,107 @@
+{
+  "chromium": {
+    "version": "Chromium 155.0.8059.79",
+    "browserVersion": {
+      "id": 1,
+      "result": {
+        "protocolVersion": "1.3",
+        "product": "HeadlessChrome/155.0.8059.79",
+        "revision": "@a49e2e3d4addfd84e765b52afe230bedb81096db",
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.8059.79 Safari/537.36",
+        "jsVersion": "15.5.35.23"
+      }
+    },
+    "captures": {
+      "png": {
+        "id": 2,
+        "result": {
+          "data": "[2727 bytes; prefix 89504e470d0a1a0a0000000d]"
+        }
+      },
+      "bgra": {
+        "id": 3,
+        "error": {
+          "code": -32602,
+          "message": "Invalid image format"
+        }
+      },
+      "rgba": {
+        "id": 4,
+        "error": {
+          "code": -32602,
+          "message": "Invalid image format"
+        }
+      },
+      "pngAfter": {
+        "id": 5,
+        "result": {
+          "data": "[2727 bytes; prefix 89504e470d0a1a0a0000000d]"
+        }
+      }
+    }
+  },
+  "firefox": {
+    "version": "Mozilla Firefox 158.0",
+    "http": {
+      "/json/version": {
+        "status": 404,
+        "body": "<html>                    <head><title>404 Not Found</title></head>                    <body>                      <h1>404 Not Found</h1>                      <p>                        <span style='font-family: monospace;'>&#47;&#106;&#115;&#111;&#1"
+      },
+      "/json/list": {
+        "status": 404,
+        "body": "<html>                    <head><title>404 Not Found</title></head>                    <body>                      <h1>404 Not Found</h1>                      <p>                        <span style='font-family: monospace;'>&#47;&#106;&#115;&#111;&#1"
+      }
+    },
+    "session": {
+      "type": "success",
+      "id": 1,
+      "result": {
+        "sessionId": "e095edbd-6860-488d-9437-5ce1f7019b6f",
+        "capabilities": {
+          "acceptInsecureCerts": false,
+          "browserName": "firefox",
+          "browserVersion": "158.0",
+          "platformName": "linux",
+          "setWindowRect": true,
+          "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+          "moz:buildID": "20261007201254",
+          "moz:headless": true,
+          "moz:platformVersion": "6.17.0-PRoot-Distro",
+          "moz:processID": 18175,
+          "moz:profile": "/tmp/cdp-format-probe/firefox-PkhZUk",
+          "moz:shutdownTimeout": 60000
+        }
+      }
+    },
+    "cdp": {
+      "png": {
+        "type": "error",
+        "id": 2,
+        "error": "unknown command",
+        "message": "Page.captureScreenshot",
+        "stacktrace": "RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:14:8\nWebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:169:5\nUnknownCommandError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:943:5\nexecute@chrome://remote/content/shared/webdriver/Session.sys.mjs:505:13\nonPacket@chrome://remote/content/webdriver-bidi/WebDriverBiDiConnection.sys.mjs:238:37\nonMessage@chrome://remote/content/server/WebSocketTransport.sys.mjs:127:18\nhandleEvent@chrome://remote/content/server/WebSocketTransport.sys.mjs:109:14\n"
+      },
+      "bgra": {
+        "type": "error",
+        "id": 3,
+        "error": "unknown command",
+        "message": "Page.captureScreenshot",
+        "stacktrace": "RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:14:8\nWebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:169:5\nUnknownCommandError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:943:5\nexecute@chrome://remote/content/shared/webdriver/Session.sys.mjs:505:13\nonPacket@chrome://remote/content/webdriver-bidi/WebDriverBiDiConnection.sys.mjs:238:37\nonMessage@chrome://remote/content/server/WebSocketTransport.sys.mjs:127:18\nhandleEvent@chrome://remote/content/server/WebSocketTransport.sys.mjs:109:14\n"
+      },
+      "rgba": {
+        "type": "error",
+        "id": 4,
+        "error": "unknown command",
+        "message": "Page.captureScreenshot",
+        "stacktrace": "RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:14:8\nWebDriverError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:169:5\nUnknownCommandError@chrome://remote/content/shared/webdriver/Errors.sys.mjs:943:5\nexecute@chrome://remote/content/shared/webdriver/Session.sys.mjs:505:13\nonPacket@chrome://remote/content/webdriver-bidi/WebDriverBiDiConnection.sys.mjs:238:37\nonMessage@chrome://remote/content/server/WebSocketTransport.sys.mjs:127:18\nhandleEvent@chrome://remote/content/server/WebSocketTransport.sys.mjs:109:14\n"
+      }
+    },
+    "created": {
+      "type": "error",
+      "id": 5,
+      "error": "no such frame",
+      "message": "DiscardedBrowsingContextError: BrowsingContext does no longer exist",
+      "stacktrace": "RemoteError@chrome://remote/content/shared/RemoteError.sys.mjs:14:8\nMessageHandlerError@chrome://remote/content/shared/messagehandler/Errors.sys.mjs:14:5\nDiscardedBrowsingContextError@chrome://remote/content/shared/messagehandler/Errors.sys.mjs:76:5\nwaitForCurrentWindowGlobal@chrome://remote/content/shared/BrowsingContextUtils.sys.mjs:295:11\n"
+    }
+  }
+}

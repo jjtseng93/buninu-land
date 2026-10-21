@@ -196,6 +196,16 @@ PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base6
 
 JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP wrapping → Bun.Image decoding/encoding → CDP base64 → Casty decoding. BMP wrapping adds a full-frame copy, and Bun.Image then parses the BMP. This cost comes from reusing the browser's encoding utilities; a future encoding path should accept raw pixels directly. The existing CanvasKit WASM's JPEG encoder does not produce output, so it cannot directly replace this path. Casty also receives low-resolution change notifications before requesting full screenshots, adding encoding work.
 
+### Negotiated raw frames / 協商原始像素
+
+With updated Casty and native bunterm, raw frames take priority over configured image codecs when both endpoints support them. Casty first verifies file transport and queries the terminal's preferred pixel format; it then tries one CDP screenshot and validates its file descriptor and local file. Unsupported engines, unavailable shared files, errors or timeouts retain the configured codec: auto uses adaptive JPEG with PNG refinement for file transport, PNG for inline. Ordinary CDP PNG/JPEG/WebP behavior is unchanged; the CDP server and browser vendor copy are not patched.
+
+Land's private `Page.captureScreenshot` formats `bgra` and `rgba` return `data` containing a JSON descriptor (`version:1`, `transport:"file"`, `path`, `width`, `height`, `stride`, `format`, `bytes`), not base64 pixels. BGRA writes the direct compositor's existing pixels; RGBA swaps red/blue when needed. Casty forwards the path using Kitty temporary-file transfer, and bunterm reads/unlinks it. The producer owns and cleans the directory even when its render worker is terminated. Outstanding files are limited to 16 / 128 MiB; abandoned files expire after 60 seconds when another raw frame is produced. This needs a shared local filesystem, not remote CDP over a network.
+
+更新後的 Casty 與原生 bunterm 會優先協商 raw：先確認檔案傳輸與終端偏好，再實際試一次 CDP 截圖。只有兩端都支援才啟用；失敗回到使用者原本格式設定，auto/file 使用 JPEG 並在靜止後補 PNG，auto/inline 使用 PNG。raw 畫面不經 PNG 壓縮或像素 base64，但 bunterm 仍透過 CanvasKit 繪製，並非直接將檔案寫進 fb0。PNG/JPEG/WebP 與一般瀏覽器的 CDP 路徑保持相容。
+
+The private Kitty query uses `f=1111970369` and requires the exact reply `OK Buninu1 bgra` or `OK Buninu1 rgba`; plain `OK` is insufficient. Raw takes priority even over an explicit configured codec, which becomes its fallback. BGRA placement uses the private format; RGBA retains standard `f=32`. Neither this private format nor the preference reply is an upstream Kitty standard. Native bunterm chooses from framebuffer channel bitfields; unknown layouts conservatively use PNG. Browser jsgotty does not advertise this extension.
+
 ## Renderer worker
 
 CanvasKit composition and screenshot encoding run in a worker by default, keeping the Wayland socket thread responsive. Use `bun index.js -- --no-render-worker` or set `BUNINU_RENDER_WORKER=0` to render on the main thread instead. The earlier experimental environment variable remains supported, with `BUNINU_RENDER_WORKER` taking precedence.

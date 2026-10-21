@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-22",
+  "implementation": "Production Land raw-frames, Casty capture policy, native bunterm raw protocol",
+  "hardware": "Intel i5-5200U / HD Graphics 5500",
+  "workload": "glmark2-wayland shading=phong, 1280x690 logical, scale 1.5",
+  "capture": [1920, 1035],
+  "transport": "negotiated BGRA temporary file",
+  "warmupSeconds": 5,
+  "framesAfterFramebufferFlush": 264,
+  "seconds": 20.0266845,
+  "fps": 13.1824116967539,
+  "intervalMedianMs": 74.93691,
+  "intervalP95Ms": 89.466955,
+  "buntermCpuPercent": 75.45938520177916,
+  "cleanup": "Test processes stopped, tty5 restored, no tty-graphics-protocol-land-* directories remained",
+  "method": "Same native timing harness with imports changed from experimental copies to production sources; frame count advances only after framebuffer flush of a new image. Raw measurements archived remotely under /root/land-performance-handoff/production."
+}

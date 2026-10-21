@@ -226,3 +226,20 @@ test('repeated opaque rows and translucent overlays preserve destination pixels 
   }
  }finally{reference.close();renderer.close();}
 });
+
+test('experimental RGBA capture matches PNG pixels without changing standard screenshots',async()=>{
+ const s=surface(false,-2,0),comp={width:32,height:24,deviceScaleFactor:1.5,fastPng:true,input:{},wm:{renderSurfaces:()=>[s],origin:s=>s.origin}};
+ s.viewportDestination=[24,24];
+ const renderer=await createRenderer(comp,{canvasKit:CK});
+ try{
+  for(const transform of [0,1]){
+   s.transform=transform;
+   const before=await renderer.screenshot({format:'png'});
+   const descriptor=JSON.parse(await renderer.screenshot({format:'rgba'}));
+   const raw=Buffer.from(await Bun.file(descriptor.path).arrayBuffer());
+   expect(raw.length).toBe(48*36*4);
+   expect(raw).toEqual(Buffer.from(decode(before)));
+   expect(await renderer.screenshot({format:'png'})).toBe(before);
+  }
+ }finally{renderer.close();}
+});

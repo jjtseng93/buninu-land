@@ -1,0 +1,85 @@
+{
+  "chromium": {
+    "version": "Chromium 155.0.8059.79",
+    "browserVersion": {
+      "id": 1,
+      "result": {
+        "protocolVersion": "1.3",
+        "product": "HeadlessChrome/155.0.8059.79",
+        "revision": "@a49e2e3d4addfd84e765b52afe230bedb81096db",
+        "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.8059.79 Safari/537.36",
+        "jsVersion": "15.5.35.23"
+      }
+    },
+    "negotiation": {
+      "auto": {
+        "format": "jpeg",
+        "fallbackFormat": "jpeg",
+        "capture": {
+          "id": 3,
+          "result": {
+            "data": "[3608 bytes; prefix ffd8ffe000104a4649460001]"
+          }
+        }
+      },
+      "png": {
+        "format": "png",
+        "fallbackFormat": "png",
+        "capture": {
+          "id": 5,
+          "result": {
+            "data": "[2727 bytes; prefix 89504e470d0a1a0a0000000d]"
+          }
+        }
+      },
+      "jpeg": {
+        "format": "jpeg",
+        "fallbackFormat": "jpeg",
+        "capture": {
+          "id": 7,
+          "result": {
+            "data": "[3608 bytes; prefix ffd8ffe000104a4649460001]"
+          }
+        }
+      },
+      "webp": {
+        "format": "webp",
+        "fallbackFormat": "webp",
+        "capture": {
+          "id": 9,
+          "result": {
+            "data": "[1408 bytes; prefix 524946467805000057454250]"
+          }
+        }
+      }
+    },
+    "captures": {
+      "png": {
+        "id": 10,
+        "result": {
+          "data": "[2727 bytes; prefix 89504e470d0a1a0a0000000d]"
+        }
+      },
+      "bgra": {
+        "id": 11,
+        "error": {
+          "code": -32602,
+          "message": "Invalid image format"
+        }
+      },
+      "rgba": {
+        "id": 12,
+        "error": {
+          "code": -32602,
+          "message": "Invalid image format"
+        }
+      },
+      "pngAfter": {
+        "id": 13,
+        "result": {
+          "data": "[2727 bytes; prefix 89504e470d0a1a0a0000000d]"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "supported": false,
+  "replies": [
+    {
+      "id": 1424345566,
+      "msg": "ENOTSUPPORTED:"
+    },
+    {
+      "id": 99173,
+      "msg": "OK"
+    }
+  ],
+  "writes": [
+    "\u001b_Ga=q,t=f,f=1111970369,s=1,v=1,i=1424345566,q=0;L3RtcC9rb25zb2xlLWJncmEtVGNmbFJ3L3A=\u001b\\",
+    "\u001b_Ga=q,t=d,f=1111970369,s=1,v=1,i=99173,q=0;BxPv/w==\u001b\\",
+    "\u001b_Ga=T,t=d,f=100,s=1,v=1,i=99174,q=1;iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4AWP8z8AAAAMFAQH2n+f6AAAAAElFTkSuQmCC\u001b\\"
+  ],
+  "expectedReply": "OK;BUNINU_BGRA_V1",
+  "bgraPlacements": 0
+}

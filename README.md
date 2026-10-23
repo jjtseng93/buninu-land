@@ -205,8 +205,10 @@ Linux or Android; the host command adapter's Windows order is unit-tested.
 
 Copying a text selection exports it once; empty text neither overwrites the
 host clipboard nor replaces the cache below. There is no clipboard timer, focus
-probe or polling host read. While the owner is alive, Wayland paste requests use
-its MIME data and never read the host. Land also keeps the last successfully captured text in memory, even
+probe or polling host read. A plain-text receive first reads the host,
+so external copies remain visible even while the previous owner is alive. A failed
+or empty host read transfers the original owner's text instead. Rich/file MIME
+requests and primary selection keep direct client-to-client transfer. Land also keeps the last successfully captured text in memory, even
 if exporting it to the system fails. When there is no Wayland selection, even immediately after startup with no cache,
 Land advertises a text offer that reads the host only on request. After a text
 owner exits, its cached text uses the same path. Every `receive` from this
@@ -216,7 +218,7 @@ empty output returns the cached text, or empty text if no cache exists (Android 
 denied). Consequently, clearing only the system clipboard does not clear this
 fallback. The cache is limited to 1 MiB, is not written to disk, and is lost when
 Land exits. File/cut MIME data from a live owner is never replaced by this fallback.
-The internal `importHost()` operation can also explicitly publish a host snapshot;
+The internal `importHost()` operation can also explicitly publish a refreshable host text offer;
 normal host-fallback paste does not require calling it. Empty or failed
 external reads leave the existing selection intact. `wl-copy` / `wl-paste` are
 skipped if they would connect to Land's own socket. No tool or daemon is installed

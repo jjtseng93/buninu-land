@@ -71,7 +71,7 @@ test('core start_drag validates surfaces and cancels the source without changing
  c.request(d,'start_drag',[0,9,0,1]);expect(comp.clipboard.selection).toBeNull();
 }));
 
-test('host reads occur only on explicit import; idle, focus and empty replies preserve file selection',async()=>{
+test('host import stays refreshable; idle, focus and empty replies preserve file selection',async()=>{
  let text='host 中文\n',reads=0;const host={...unavailable,read:async()=>{reads++;return text;}};
  await fixture(async(comp,connect,dir)=>{
   const c=await connect(),d=device(c);
@@ -79,11 +79,12 @@ test('host reads occur only on explicit import; idle, focus and empty replies pr
   expect(reads).toBe(0);expect(comp.clipboard.selection).toBeNull();
   expect(await comp.clipboard.importHost()).toBe(true);expect(reads).toBe(1);
   const offer=latest(c);expect(offer.clipboardSource.bytes.toString()).toBe(text);
+  text='host changed after import';
   const fd=openSync(join(dir,'host-text'),'w+');c.request(offer,'receive',['text/plain',libc.dup(fd)]);await Bun.sleep(10);
-  expect(readFileSync(join(dir,'host-text'),'utf8')).toBe(text);closeSync(fd);expect(reads).toBe(1);
+  expect(readFileSync(join(dir,'host-text'),'utf8')).toBe(text);closeSync(fd);expect(reads).toBe(2);
   const s=source(c,['text/uri-list']);c.request(d,'set_selection',[s.id]);
   comp.clipboard.focus(c);text='';await Bun.sleep(50);
-  expect(reads).toBe(1);expect(comp.clipboard.selection).toBe(s);
+  expect(reads).toBe(2);expect(comp.clipboard.selection).toBe(s);
   expect(await comp.clipboard.importHost()).toBe(false);expect(comp.clipboard.selection).toBe(s);
  },host);
 });
@@ -185,5 +186,28 @@ test('pending host read cannot override a new live owner',async()=>{
   complete('stale host');await Bun.sleep(10);
   expect(comp.clipboard.selection).toBe(s);expect(comp.clipboard.textCache).toBeNull();
   expect(readFileSync(join(dir,'race'),'utf8')).toBe('');closeSync(fd);
+ },host);
+});
+
+
+test('live text owner receives fresh host text; denial falls back and file MIME stays direct',async()=>{
+ let hostText='new host',reads=0;
+ const host={...unavailable,read:async()=>{reads++;if(hostText===null)throw Error('denied');return hostText;}};
+ await fixture(async(comp,connect,dir)=>{
+  const a=await connect(),b=await connect(),da=device(a);device(b);
+  const s=source(a,['text/plain']),original=a.event.bind(a);
+  a.event=(o,n,...args)=>{if(n==='send')writeSync(args[1],Buffer.from('old owner'));else original(o,n,...args);};
+  a.request(da,'set_selection',[s.id]);await comp.clipboard.exports;
+  const paste=async (name,mime='text/plain')=>{
+   const path=join(dir,name),fd=openSync(path,'w+');
+   try{b.request(latest(b),'receive',[mime,libc.dup(fd)]);for(let i=0;i<100&&!readFileSync(path).length;i++)await Bun.sleep(5);return readFileSync(path,'utf8');}finally{closeSync(fd);}
+  };
+  expect(reads).toBe(0);
+  expect(await paste('fresh')).toBe('new host');expect(reads).toBe(1);
+  hostText=null;expect(await paste('denied')).toBe('old owner');expect(reads).toBe(2);
+  // Route by requested MIME, even when the same owner offers files and text.
+  a.request(s,'offer',['text/uri-list']);hostText='unrelated host';
+  expect(await paste('file','text/uri-list')).toBe('old owner');expect(reads).toBe(2);
+  expect(await paste('mixed-text')).toBe('unrelated host');expect(reads).toBe(3);
  },host);
 });

@@ -203,19 +203,21 @@ stopped after 2.5 seconds. PowerShell quoting and
 newline handling are copied verbatim from jsmdcui. Land itself still requires
 Linux or Android; the host command adapter's Windows order is unit-tested.
 
-Copying a text selection exports it once; empty text does not overwrite the
-host clipboard. There is no clipboard timer, focus
-probe or background host read. Wayland paste requests use the existing owner's
-MIME data. Land also keeps the last successfully captured text in memory, even
-if exporting it to the system fails. After that text owner exits, Land advertises
-its cached text through the standard Wayland clipboard. Pasting from this cache
-tries the host once: a nonempty successful result refreshes the cache; failure or
-empty output returns the cached text (Android can return empty when access is
+Copying a text selection exports it once; empty text neither overwrites the
+host clipboard nor replaces the cache below. There is no clipboard timer, focus
+probe or polling host read. While the owner is alive, Wayland paste requests use
+its MIME data and never read the host. Land also keeps the last successfully captured text in memory, even
+if exporting it to the system fails. When there is no Wayland selection, even immediately after startup with no cache,
+Land advertises a text offer that reads the host only on request. After a text
+owner exits, its cached text uses the same path. Every `receive` from this
+host/cache fallback reads the host once, including requests from data-control clients that
+have no focus and receive automatically (clipboard managers, for example): a nonempty successful result refreshes the cache; failure or
+empty output returns the cached text, or empty text if no cache exists (Android can return empty when access is
 denied). Consequently, clearing only the system clipboard does not clear this
 fallback. The cache is limited to 1 MiB, is not written to disk, and is lost when
 Land exits. File/cut MIME data from a live owner is never replaced by this fallback.
-External text import is an explicit internal `importHost()` operation;
-a frontend system-paste action has not been connected yet. Empty or failed
+The internal `importHost()` operation can also explicitly publish a host snapshot;
+normal host-fallback paste does not require calling it. Empty or failed
 external reads leave the existing selection intact. `wl-copy` / `wl-paste` are
 skipped if they would connect to Land's own socket. No tool or daemon is installed
 automatically. Restart an existing Land instance to load this support.

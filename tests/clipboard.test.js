@@ -52,7 +52,7 @@ test('owner disconnect during delivery stops the stale broadcast',async()=>fixtu
  b.event=(o,n,...args)=>{if(o===db)events.push([n,...args]);original(o,n,...args);};
  const src=source(a,['application/test']);a.add=()=>{throw Error('Invalid new object ID');};
  events.length=0;a.request(da,'set_selection',[src.id]);
- expect(comp.clipboard.selection).toBeNull();expect(events).toEqual([['selection',0]]);
+ expect(comp.clipboard.selection).toBeNull();expect(events.at(-1)[0]).toBe('selection');expect(latest(b).clipboardSource).toBe(comp.clipboard.hostSource);
 }));
 
 test('core selection follows Hyprland: no focus or serial check',async()=>fixture(async(comp,connect)=>{
@@ -146,5 +146,44 @@ test('copied text survives owner close; explicit paste reads host once and falls
   hostText='';expect(await paste()).toBe('saved 中文');expect(reads).toBe(2);
   hostText='fresh host';expect(await paste()).toBe('fresh host');expect(reads).toBe(3);
   hostText=null;expect(await paste()).toBe('fresh host');expect(reads).toBe(4);
+ },host);
+});
+
+
+test('fresh clipboard offers host text without cache and reads only on receive',async()=>{
+ let reads=0,text='external first copy';
+ const host={...unavailable,read:async()=>{reads++;if(text===null)throw Error('denied');return text;}};
+ await fixture(async(comp,connect,dir)=>{
+  const c=await connect();device(c,'wl_data');
+  comp.input.keyboard={client:c};comp.clipboard.focus(c);
+  expect(comp.clipboard.textCache).toBeNull();expect(reads).toBe(0);
+  expect(latest(c).clipboardSource).toBe(comp.clipboard.hostSource);
+  let count=0;
+  const paste=async()=>{
+   const path=join(dir,'fresh-'+count++),fd=openSync(path,'w+');
+   try{
+    c.request(latest(c),'receive',['text/plain',libc.dup(fd)]);
+    for(let i=0;i<100&&comp.clipboard.tasks.size;i++)await Bun.sleep(5);
+    await Bun.sleep(10);
+    return readFileSync(path,'utf8');
+   }finally{closeSync(fd);}
+  };
+  text=null;expect(await paste()).toBe('');expect(reads).toBe(1);
+  text='external first copy';expect(await paste()).toBe(text);expect(reads).toBe(2);
+  expect(comp.clipboard.textCache.bytes.toString()).toBe(text);
+  text=null;expect(await paste()).toBe('external first copy');expect(reads).toBe(3);
+  text='new external copy';expect(await paste()).toBe(text);expect(reads).toBe(4);
+ },host);
+});
+
+test('pending host read cannot override a new live owner',async()=>{
+ let complete;const host={...unavailable,read:()=>new Promise(r=>complete=r)};
+ await fixture(async(comp,connect,dir)=>{
+  const c=await connect(),d=device(c),fd=openSync(join(dir,'race'),'w+');
+  c.request(latest(c),'receive',['text/plain',libc.dup(fd)]);
+  const s=source(c,['text/uri-list']);c.request(d,'set_selection',[s.id]);
+  complete('stale host');await Bun.sleep(10);
+  expect(comp.clipboard.selection).toBe(s);expect(comp.clipboard.textCache).toBeNull();
+  expect(readFileSync(join(dir,'race'),'utf8')).toBe('');closeSync(fd);
  },host);
 });

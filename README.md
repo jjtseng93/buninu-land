@@ -92,7 +92,7 @@ The system-installed Chromium 153.0.8010.52 and Firefox ESR 140.12.0 were tested
 
 The Chromium command above uses `--no-sandbox`, which disables the browser sandbox and is only suitable for testing trusted content in an isolated environment, not general browsing. Firefox did not require disabling its sandbox. Native Android browser binaries were not verified in this test.
 
-Firefox's subsurfaces now participate in compositing and pointer coordinate handling. `wl_data_device_manager` currently provides the interface GTK needs to initialize and an empty selection; clipboard and drag-and-drop are not implemented.
+Firefox's subsurfaces now participate in compositing and pointer coordinate handling. `wl_data_device_manager` now transfers clipboard selections; drag-and-drop is not implemented.
 
 Casty passes `--remote-debugging-port=0`, allowing the system to select an available port. It reads the actual port from the compositor's DevTools URL output. A manual headless launch defaults to port 9222.
 
@@ -155,9 +155,9 @@ At commit time, SHM pixels are copied into compositor-owned memory using libc `p
 
 ## First-version scope
 
-Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, and `wl_data_device_manager` v1. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
+Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, `wl_data_device_manager` v1, `ext_data_control_manager_v1` v1, and `zwlr_data_control_manager_v1` v2. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
 
-Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, clipboard, drag-and-drop, GPU compositing, general DMA-BUF support, comprehensive popup constraints, and full protocol/role validation are not implemented.
+Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, drag-and-drop, GPU compositing, general DMA-BUF support, comprehensive popup constraints, and full protocol/role validation are not implemented.
 
 ### Window shortcuts
 
@@ -181,6 +181,44 @@ These bindings connect existing Land window actions to [Omarchy's window binding
 Directional focus while fullscreen transfers fullscreen to the selected window. An arrow with no window in that direction does nothing. Window cycling also transfers fullscreen. Workspaces remain limited to 1–9; Super+0, Super+Tab, groups, scratchpads and other unimplemented combinations are not intercepted. Modifiers must match exactly; unmatched keys pass through to applications. Resizing uses Land’s existing floating size limits and tiled split-ratio algorithm, not full Hyprland resize semantics. Use an updated casty inside a Kitty-keyboard-capable terminal such as jsgotty or bunterm. Casty negotiates the protocol automatically and forwards Super as CDP Meta, including key releases. Ctrl+Alt combinations now pass through to applications; they are no longer window-shortcut aliases. Legacy terminals still work, but cannot reliably convey Super. Restart both casty and the compositor to load changes.
 
 Protocol definitions are preserved unchanged, but their implementation is JavaScript, not a byte-for-byte copy of Hyprland's C++. Not every request in the XML is implemented. See `SOURCES.md` for references.
+
+### Clipboard
+
+Wayland clients exchange advertised MIME types through `wl_data_device` and
+`ext_data_control` / `wlr_data_control`. The receiver's file descriptor goes
+directly to the owner, preserving file lists, copy/cut metadata and binary data
+without encoding or buffering in the compositor. Regular clients receive the
+selection when focused; data-control clients can access it without focus. As in
+Hyprland's `DataDevice.cpp`, setting a core selection checks neither keyboard
+focus nor input serial.
+Data-control primary selection is separate and stays inside Land. Drag-and-drop
+and persistence of file/binary selections after the owner exits are not implemented.
+
+The host bridge transfers UTF-8 text only (up to 1 MiB). Commands are found with
+`Bun.which`; `xclip` is always first, including on Windows. Remaining choices are
+PowerShell on Windows; `pbcopy` / `pbpaste` on macOS; otherwise parent-compositor
+`wl-copy` / `wl-paste`, `xsel`, then Termux clipboard commands. Failure tries the
+next tool and never disables Wayland clipboard exchange. Each host command is
+stopped after 2.5 seconds. PowerShell quoting and
+newline handling are copied verbatim from jsmdcui. Land itself still requires
+Linux or Android; the host command adapter's Windows order is unit-tested.
+
+Copying a text selection exports it once; empty text does not overwrite the
+host clipboard. There is no clipboard timer, focus
+probe or background host read. Wayland paste requests use the existing owner's
+MIME data. Land also keeps the last successfully captured text in memory, even
+if exporting it to the system fails. After that text owner exits, Land advertises
+its cached text through the standard Wayland clipboard. Pasting from this cache
+tries the host once: a nonempty successful result refreshes the cache; failure or
+empty output returns the cached text (Android can return empty when access is
+denied). Consequently, clearing only the system clipboard does not clear this
+fallback. The cache is limited to 1 MiB, is not written to disk, and is lost when
+Land exits. File/cut MIME data from a live owner is never replaced by this fallback.
+External text import is an explicit internal `importHost()` operation;
+a frontend system-paste action has not been connected yet. Empty or failed
+external reads leave the existing selection intact. `wl-copy` / `wl-paste` are
+skipped if they would connect to Land's own socket. No tool or daemon is installed
+automatically. Restart an existing Land instance to load this support.
 
 ## Frame conversion costs
 

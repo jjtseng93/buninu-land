@@ -36,3 +36,16 @@ Browser compatibility work consulted GTK 3's [`gdk/wayland/gdkdisplay-wayland.c`
 Pointer scroll framing was checked against GTK 3's [`gdk/wayland/gdkdevice-wayland.c`](https://github.com/GNOME/gtk/blob/gtk-3-24/gdk/wayland/gdkdevice-wayland.c), particularly `gdk_wayland_seat_flush_frame_event`: motion/enter events and axis events must reach separate frames for this client path. No GTK source code was copied.
 
 Fractional scaling follows the design in the neighboring Hyprland checkout: `src/protocols/FractionalScale.cpp`, `src/desktop/view/WLSurface.cpp`, and `src/render/ElementRenderer.cpp`. The JS implementation uses upstream fractional-scale and viewporter XML, separates logical surface geometry from buffer dimensions, and avoids resampling matching physical-size buffers. No native code is linked.
+
+Clipboard: `protocols/ext-data-control-v1.xml` is copied unchanged from
+`/usr/share/wayland-protocols/staging/ext-data-control/ext-data-control-v1.xml`
+(system wayland-protocols 1.44); `wlr-data-control-unstable-v1.xml` is copied
+unchanged from `../Hyprland/protocols/` at the Hyprland revision above. SHA-256
+hashes are recorded in `vendor-manifest.json`. Their license notices remain
+embedded. Selection lifetime and direct FD forwarding were compared with
+Hyprland's `src/protocols/ExtDataDevice.cpp` and `core/DataDevice.cpp`.
+`lib/clipboard-powershell.js` copies `powershellClipboard` and `outputOrThrow`
+verbatim from `../jsmdcui/src/platform/clipboard.js`; other host command forms
+are adapted from that file, with xclip moved to first priority on every platform.
+The execution adapter bounds command time; Linux commands run asynchronously.
+See `LICENSES/jsmdcui.txt`. No dependencies were installed.

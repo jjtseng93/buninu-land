@@ -92,7 +92,7 @@ Firefox ESR 140.12.0 也已實測只需上述 `XDG_RUNTIME_DIR` 和 `WAYLAND_DIS
 
 上述 Chromium 指令中的 `--no-sandbox` 會停用瀏覽器沙箱，只適合隔離環境中的受信任內容測試，不建議用於一般瀏覽。Firefox 不需停用 sandbox。Android 原生瀏覽器執行檔尚未在本次測試中驗證。
 
-Firefox 使用的 subsurface 已接入合成與滑鼠座標處理。`wl_data_device_manager` 目前僅提供 GTK 初始化所需的介面及空選取狀態；剪貼簿與拖放仍未實作。
+Firefox 使用的 subsurface 已接入合成與滑鼠座標處理。`wl_data_device_manager` 已支援剪貼簿選取資料傳輸；拖放仍未實作。
 
 Casty 會傳入 `--remote-debugging-port=0`，由系統選擇可用 port；Casty 從 compositor 輸出的 DevTools URL 取得實際 port。手動 headless 啟動預設使用 9222。
 
@@ -151,9 +151,9 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 ## 第一版範圍
 
-公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
+公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1、`ext_data_control_manager_v1` v1、`zwlr_data_control_manager_v1` v2。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
-Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、剪貼簿與拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
+Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 
 ### 視窗快捷鍵
 
@@ -177,6 +177,34 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 全螢幕時切換方向焦點，會將全螢幕轉移到選中的視窗；該方向沒有視窗則不動作。循環視窗在全螢幕時也會轉移全螢幕。工作區目前限 1–9；不攔截 Super+0、Super+Tab、群組、scratchpad 或其他尚未實作的組合。修飾鍵必須完全符合表列組合，其他按鍵交回應用程式。大小調整沿用 Land 既有的浮動尺寸限制與平鋪比例演算法，不代表完整複製 Hyprland 的 resize 行為。請在支援 Kitty keyboard 的終端（例如新版 jsgotty 或 bunterm）裡使用新版 casty。Casty 會自動協商並將 Super 以 CDP Meta 傳入，包括按鍵放開事件。Ctrl+Alt 組合現在交回應用程式，不再作為視窗快捷鍵的替代。傳統終端仍能使用，但無法可靠傳遞 Super。修改後須重啟 casty 和 compositor。
 
 協定定義原樣保留，但實作為 JS，並不是 Hyprland C++ 的逐位元複本，也不代表 XML 中每個 request 都已實作。參考來源見 `SOURCES.md`。
+
+### 剪貼簿
+
+Wayland 程式透過 `wl_data_device` 與 `ext_data_control`／`wlr_data_control`
+交換公布的 MIME 類型。接收方的檔案描述符直接轉交來源程式，保留檔案清單、
+複製／剪下標記與二進位資料，compositor 不額外編碼或緩衝內容。一般程式取得
+焦點後收到選取資料；data-control 程式不需要焦點。比照 Hyprland 的
+`DataDevice.cpp`，一般程式設定選取時不檢查鍵盤焦點或輸入 serial。data-control 的 primary
+selection 獨立保存於 Land 內。目前不支援拖放，也不在來源程式退出後保存檔案／二進位選取資料。
+
+系統剪貼簿橋接目前傳輸 UTF-8 文字，上限 1 MiB。使用 `Bun.which` 尋找命令，
+所有平台（包含 Windows）一律優先 `xclip`。其餘候選為 Windows 的 PowerShell、
+macOS 的 `pbcopy`／`pbpaste`；其他平台依序嘗試上層 compositor 的
+`wl-copy`／`wl-paste`、`xsel`、Termux 剪貼簿命令。失敗會嘗試下一個工具，
+不影響 Wayland 程式間交換資料。每個系統剪貼簿命令最多執行 2.5 秒。PowerShell 引號與換行處理原樣複製自 jsmdcui。
+Land 本身仍需要 Linux／Android；Windows 命令優先順序已由單元測試驗證。
+
+複製文字選取時，僅匯出一次；空文字不會覆蓋系統剪貼簿。不設剪貼簿計時器，也不在焦點切換或背景自動讀取
+系統剪貼簿。Wayland 貼上使用既有來源的 MIME 資料。
+Land 另在記憶體保留上次成功取得的複製文字，即使匯出至系統失敗也保留。
+該文字來源退出後，透過標準 Wayland 剪貼簿提供快取。貼上此快取時才嘗試讀取
+系統一次：成功取得非空文字就更新快取；失敗或空回覆則使用快取（Android 拒絕
+存取時可能回傳空值）。因此單純清空系統剪貼簿不會清掉這份回退快取。
+快取上限 1 MiB、不寫入磁碟，Land 結束時消失；不取代仍存在的來源所提供的檔案／剪下 MIME 資料。
+外部文字匯入目前是明確呼叫
+的內部 `importHost()` 操作，尚未接上前端的系統貼上入口。空回覆或讀取失敗
+不會覆蓋現有選取。若 `wl-copy`／`wl-paste` 會連回 Land 自己則跳過。
+不會自動安裝工具或 daemon。已啟動的 Land 需重開才會載入。
 
 ## 畫面轉換成本
 

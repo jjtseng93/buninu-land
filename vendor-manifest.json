@@ -8,5 +8,7 @@
   "vendor/buninu-browser/cdp-server.js": "afdfd910159f92f1f4743960a12f5ebb3ee6aa770094a5c53aa6ff4319cd2bc8",
   "protocols/viewporter.xml": "dcb12279a03746301fe490aaed4b38a403485a925abfce2ccfceb644e104fe71",
   "protocols/fractional-scale-v1.xml": "5941de5d28f427ecdadddc8623a6f6af0a30b0ab4726847236ba7a7652b81316",
-  "protocols/linux-dmabuf-v1.xml": "0681c01199393662229b0d9f71a4bd502350ea8f782a7049fa30e392b50fb2c8"
+  "protocols/linux-dmabuf-v1.xml": "0681c01199393662229b0d9f71a4bd502350ea8f782a7049fa30e392b50fb2c8",
+  "protocols/ext-data-control-v1.xml": "293deba5dfdb974fbcf8dcf891a30a51a36a8bba0047dc6bdf6a03194089b7fb",
+  "protocols/wlr-data-control-unstable-v1.xml": "5ac39552975b28d0ea42f636a79b7fc8e2d1fcfa31cbe173f549bd4b044ae2de"
 }

@@ -96,3 +96,12 @@ Bun.Image is a Bun runtime API, not a separately distributed native addon.
 The JS Dwindle-style layout and seat/focus implementation reference Hyprland (Copyright 2022–2026 vaxerski and contributors), BSD-3-Clause. See `LICENSES/hyprland.txt` and `SOURCES.md` for the source revision and paths. No Hyprland native library is linked. This implements a subset, not full Hyprland compatibility.
 
 The vendored `protocols/viewporter.xml` and `protocols/fractional-scale-v1.xml` retain their upstream copyright and MIT-style permission notices in full. Sources and hashes are recorded in `SOURCES.md` and `vendor-manifest.json`.
+
+The vendored `protocols/ext-data-control-v1.xml` (Copyright © 2018 Simon Ser, © 2019 Ivan Molodetskikh, © 2024 Neal Gompa) and `protocols/wlr-data-control-unstable-v1.xml` (Copyright © 2018 Simon Ser, © 2019 Ivan Molodetskikh) are unchanged and retain their upstream MIT-style permission notices in full. Sources and hashes are recorded in `SOURCES.md` and `vendor-manifest.json`.
+
+## jsmdcui clipboard
+
+`lib/clipboard-powershell.js` contains unchanged functions from jsmdcui's
+`src/platform/clipboard.js`; `lib/clipboard-host.js` adapts its command forms.
+MIT, copyright (c) 2016–2020 Zachary Yedidia, et al. and (c) 2026 Dr. John
+(醫者小智). Full notice: `LICENSES/jsmdcui.txt`.

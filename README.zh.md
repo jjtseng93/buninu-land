@@ -151,7 +151,7 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 ## 第一版範圍
 
-公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v1、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1、`ext_data_control_manager_v1` v1、`zwlr_data_control_manager_v1` v2。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
+公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v2、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1、`ext_data_control_manager_v1` v1、`zwlr_data_control_manager_v1` v2。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
 Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 

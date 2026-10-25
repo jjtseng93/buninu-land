@@ -155,7 +155,7 @@ At commit time, SHM pixels are copied into compositor-owned memory using libc `p
 
 ## First-version scope
 
-Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v1, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, `wl_data_device_manager` v1, `ext_data_control_manager_v1` v1, and `zwlr_data_control_manager_v1` v2. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
+Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v2, `wl_output` v2, `wl_seat` v5 (pointer and keyboard), `wl_subcompositor` v1, `wl_data_device_manager` v1, `ext_data_control_manager_v1` v1, and `zwlr_data_control_manager_v1` v2. SHM supports ARGB8888 and XRGB8888. The first normal window fills the work area with an 8-pixel outer gap; additional windows split the tiled area. Rendering is scheduled at approximately 60 Hz; commits still copy the entire buffer.
 
 Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, drag-and-drop, GPU compositing, general DMA-BUF support, comprehensive popup constraints, and full protocol/role validation are not implemented.
 

@@ -159,6 +159,17 @@ Advertises `wl_compositor` v4, `wl_shm` v1, `xdg_wm_base` v2, `wl_output` v2, `w
 
 Casty mouse/key events now route to Wayland, with a JS-generated XKB keymap, focus, basic popups, and fullscreen configuration. These remain early implementations. Subsurfaces support synchronized/desynchronized commits, positioning, and stacking. Touch, drag-and-drop, GPU compositing, general DMA-BUF support, comprehensive popup constraints, and full protocol/role validation are not implemented.
 
+### Pointer scrolling
+
+CDP pixel deltas are delivered as continuous Wayland axes, including horizontal
+and diagonal movement. Wheel-event Shift/Alt/Ctrl/Meta state is combined with
+held keys for that pointer frame, then restored; the client decides what those
+modifiers mean. This lets clients such as GPUI handle scrolling without waiting
+for discrete wheel-detent events. Land does not swap axes for Shift. Use an
+updated Casty and outer terminal to carry horizontal wheel reports; the client
+widget must itself enable horizontal scrolling. Terminal mouse reports do not
+carry Super, even when Kitty keyboard events do.
+
 ### Window shortcuts
 
 These bindings connect existing Land window actions to [Omarchy's window bindings](https://github.com/omacom/omarchy/blob/quattro/default/hypr/bindings/tiling.lua):

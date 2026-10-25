@@ -155,6 +155,15 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 
+### 滑鼠捲動
+
+CDP 像素位移以 Wayland continuous 軸事件傳遞，包含水平與斜向捲動。滾輪事件
+中的 Shift／Alt／Ctrl／Meta 與已按住的按鍵狀態合併，在該 pointer frame 後還原，
+由客戶端決定修飾鍵的用途。GPUI 等客戶端因此不必等待離散滾輪刻度才捲動。
+Land 不會因 Shift 自行交換軸向。請搭配新版 Casty 與能傳送水平回報的外層終端，
+而客戶端元件本身也須啟用水平捲動。即使 Kitty 鍵盤能傳 Super，終端滑鼠回報
+仍無法攜帶 Super。
+
 ### 視窗快捷鍵
 
 以下快捷鍵接上 Land 已有的視窗操作，對照 [Omarchy 的視窗綁定](https://github.com/omacom/omarchy/blob/quattro/default/hypr/bindings/tiling.lua)：

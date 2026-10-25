@@ -211,3 +211,37 @@ test('live text owner receives fresh host text; denial falls back and file MIME 
   expect(await paste('mixed-text')).toBe('unrelated host');expect(reads).toBe(3);
  },host);
 });
+
+for(const version of [1,2,3])test(`core clipboard v${version} propagates versions and transfers exact bytes`,async()=>fixture(async(comp,connect,dir)=>{
+ const a=await connect(),b=await connect(),da=device(a,'wl_data',version),db=device(b,'wl_data',version);
+ expect(comp.globals.find(([name])=>name==='wl_data_device_manager')[1]).toBe(3);
+ comp.input.keyboard={client:b};comp.clipboard.focus(b);
+ const src=source(a,['application/test']);expect(src.version).toBe(version);expect(db.version).toBe(version);
+ const events=[],send=b.event.bind(b);b.event=(o,n,...args)=>{events.push(n);send(o,n,...args);};
+ a.request(da,'set_selection',[src.id,1]);const offer=latest(b);expect(offer.version).toBe(version);
+ expect(events).not.toContain('action');expect(events).not.toContain('source_actions');
+ const original=a.event.bind(a);a.event=(o,n,...args)=>{if(n==='send')writeSync(args[1],Buffer.from('GPUI 中文'));else original(o,n,...args);};
+ const file=join(dir,'v'+version),fd=openSync(file,'w+');
+ try{b.request(offer,'receive',['application/test',libc.dup(fd)]);expect(readFileSync(file,'utf8')).toBe('GPUI 中文');}finally{closeSync(fd);}
+ b.request(offer,'destroy',[]);expect(b.objects.has(offer.id)).toBe(false);
+ if(version>=2){b.request(db,'release',[]);expect(comp.clipboard.devices.has(db)).toBe(false);}
+}));
+
+test('v3 selection offers reject DND-only requests and sources validate actions',async()=>fixture(async(comp,connect)=>{
+ const c=await connect(),d=device(c,'wl_data',3);comp.input.keyboard={client:c};comp.clipboard.focus(c);
+ const offer=latest(c),src=source(c,['application/test']);
+ function error(fn,code){let caught;try{fn();}catch(e){caught=e;}expect(caught).toBeInstanceOf(Error);expect(caught.protocolCode).toBe(code);return caught;}
+ error(()=>c.request(offer,'finish',[]),0);
+ error(()=>c.request(offer,'set_actions',[1,1]),3);
+ error(()=>c.request(src,'set_actions',[8]),0);
+ c.request(src,'set_actions',[0]);
+ error(()=>c.request(src,'set_actions',[1]),1);
+ expect(error(()=>c.request(d,'set_selection',[src.id,1]),1).protocolObject).toBe(src.id);
+ expect(comp.clipboard.selection).toBeNull();
+ const factory=c.add(8,'wl_compositor',4);c.request(factory,'create_surface',[9]);
+ let cancelled=false;const send=c.event.bind(c);c.event=(o,n,...args)=>{if(o===src&&n==='cancelled')cancelled=true;send(o,n,...args);};
+ c.request(d,'start_drag',[src.id,9,0,1]);expect(cancelled).toBe(true);
+ c.request(c.object(2),'create_data_source',[10]);const selected=c.object(10);
+ c.request(d,'set_selection',[selected.id,1]);
+ error(()=>c.request(selected,'set_actions',[1]),1);
+}));

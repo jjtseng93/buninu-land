@@ -151,7 +151,7 @@ SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然
 
 ## 第一版範圍
 
-公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v2、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v1、`ext_data_control_manager_v1` v1、`zwlr_data_control_manager_v1` v2。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
+公布 `wl_compositor` v4、`wl_shm` v1、`xdg_wm_base` v2、`wl_output` v2、`wl_seat` v5（滑鼠與鍵盤）、`wl_subcompositor` v1、`wl_data_device_manager` v3、`ext_data_control_manager_v1` v1、`zwlr_data_control_manager_v1` v2。SHM 支援 ARGB8888 與 XRGB8888。第一個一般視窗填滿工作區，保留 8 像素外側間距；新增視窗會分割平鋪區域。約 60 Hz 排程，每次提交仍完整複製 buffer。
 
 Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、焦點、基本 popup 與全螢幕 configure，仍屬早期實作。已支援 subsurface 的同步／非同步提交、位置與堆疊。尚未支援觸控、拖放、GPU 合成、通用 DMA-BUF 支援、完整 popup 邊界調整，以及全面的協定與角色生命週期驗證。
 
@@ -179,6 +179,11 @@ Casty 滑鼠與鍵盤事件已轉送 Wayland，包含 JS 產生的 XKB keymap、
 協定定義原樣保留，但實作為 JS，並不是 Hyprland C++ 的逐位元複本，也不代表 XML 中每個 request 都已實作。參考來源見 `SOURCES.md`。
 
 ### 剪貼簿
+
+核心 data-device 支援 v1–v3，source 與 offer 繼承協商版本。拖放 action 請求會驗證，
+但拖放仍會取消。Client 可能在本地快取 selection，貼上時完全不送出 `receive`；
+這種情況 Land 無法讀取 host，需要新的 selection 通知才會讓 client 清除快取。
+這次支援沒有加入 host 輪詢。
 
 Wayland 程式透過 `wl_data_device` 與 `ext_data_control`／`wlr_data_control`
 交換公布的 MIME 類型。接收方的檔案描述符直接轉交來源程式，保留檔案清單、

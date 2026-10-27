@@ -25,11 +25,11 @@ test('worker owns raw directory in parent and removes it even with capture in fl
  expect(existsSync(dirname(f.path))).toBe(false);
 });
 
-test('renderer clips fractional CSS dimensions before raw output in both composition paths',async()=>{
- const {createRenderer}=await import('../lib/renderer.js');
- for(const directComposition of [true,false]) {
+test('renderer clips fractional CSS dimensions before raw output, as the CanvasKit reference does',async()=>{
+ const {createRenderer}=await import('../lib/renderer.js'),{createRenderer:createReference}=await import('./support/canvaskit-renderer.js');
+ for(const create of [createRenderer,createReference]) {
   const c={width:16,height:9,deviceScaleFactor:1.75,input:{},wm:{renderSurfaces:()=>[],origin:()=>({x:0,y:0})}};
-  const renderer=await createRenderer(c,{directComposition});
+  const renderer=await create(c);
   try {
    for(const format of ['rgba','bgra']) {
     const clip={x:0,y:0,width:16,height:15/1.75,scale:1};
@@ -45,12 +45,12 @@ test('renderer clips fractional CSS dimensions before raw output in both composi
  }
 });
 
-test('clip offsets crop the same scene in direct and CanvasKit paths without stale cache',async()=>{
- const {createRenderer}=await import('../lib/renderer.js');
+test('clip offsets crop the same scene as the CanvasKit reference, without stale cache',async()=>{
+ const {createRenderer}=await import('../lib/renderer.js'),{createRenderer:createReference}=await import('./support/canvaskit-renderer.js');
  const bytes=Buffer.alloc(4*4*4);for(let i=0;i<16;i++)bytes.set([i,20+i,40+i,255],i*4);
  const surface={pixels:{bytes,width:4,height:4,stride:16,format:1},scale:1,transform:0,x:0,y:0};
- for(const directComposition of [true,false]) {
-  const renderer=await createRenderer({width:4,height:4,input:{},wm:{renderSurfaces:()=>[surface],origin:()=>({x:0,y:0})}},{directComposition});
+ for(const create of [createRenderer,createReference]) {
+  const renderer=await create({width:4,height:4,input:{},wm:{renderSurfaces:()=>[surface],origin:()=>({x:0,y:0})}});
   try {
    for(const x of [0,1,2]) {
     const frame=JSON.parse(await renderer.screenshot({format:'bgra',clip:{x,y:1,width:2,height:2,scale:1}}));

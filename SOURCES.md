@@ -49,3 +49,5 @@ verbatim from `../jsmdcui/src/platform/clipboard.js`; other host command forms
 are adapted from that file, with xclip moved to first priority on every platform.
 The execution adapter bounds command time; Linux commands run asynchronously.
 See `LICENSES/jsmdcui.txt`. No dependencies were installed.
+
+- `lib/direct-compositor.ts` and `lib/renderer.ts`: ported from the sibling MIT-licensed buninu-land-ts commit `78bcc896d1c3f7bc4431ddc29a778b451a7d6de2`, retaining TypeScript and adapting imports to the existing JS modules. The previous JS/CanvasKit implementations remain in their original JS files as legacy exports for rollback and comparisons; the default TypeScript path does not load CanvasKit. The sibling renderer’s subsequent uncommitted `Capture`/`DirectRenderer` refactor was also adapted, preserving rejection of null capture limits.

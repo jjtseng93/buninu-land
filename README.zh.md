@@ -145,7 +145,7 @@ Linux／Android 常見路徑是 `~/.npm/_npx`，但自訂 npm cache 設定可能
 - `lib/protocol.js`：使用 `Bun.XML.parse()` 在執行時讀標準 XML，依原始順序處理 opcode／argument。
 - `lib/transport.js`：僅以 Bun FFI 載入 libc；Unix socket、`recvmsg`／`SCM_RIGHTS`、非阻塞傳輸、socket lock、FD 清理。
 - `lib/compositor.js`：每個 client 的 object table、SHM pool／buffer 生命週期、surface commit、xdg configure／ack、frame callback。
-- `lib/renderer.js`：沿用 browser 的 CanvasKit WASM，以 CPU 合成；`lib/frame.js` 原樣沿用 browser 的 `Bun.Image` 編碼工具。
+- `lib/renderer.ts` / `lib/direct-compositor.ts`：Bun 直接載入的純 TypeScript CPU 合成器；`lib/renderer.js` 保留既有 JS 入口。原本 JS／CanvasKit renderer 保留為 `createLegacyRenderer`。`lib/frame.js` 沿用 browser 的 `Bun.Image` 編碼工具。
 
 SHM 在 commit 時使用 libc `pread` 複製到 compositor 持有的像素，然後釋放 client buffer。這讓 client 可以安全重用 buffer；也避免 client 截短 mmap backing file 導致 compositor SIGBUS。Pool resource 被銷毀後，只要 buffer 還存在，FD 就仍然保留。
 
@@ -224,7 +224,7 @@ Land 另在記憶體保留上次成功取得的複製文字，即使匯出至系
 
 ## 畫面轉換成本
 
-Renderer 會快取不可變 SHM 快照對應的 CanvasKit image，重用一個完整尺寸及一個預覽繪圖 surface，並在像素、位置、堆疊、游標及 viewport 未變時重用合成結果。預覽可以使用已存在且符合場景的完整影像，但不會為了預覽強制重畫完整尺寸。代價是截圖之間保留繪圖記憶體；過期 image、尺寸變更的 buffer 及關閉時的 renderer 資源會釋放。
+Renderer 以不可變 SHM 快照、幾何、堆疊、游標與 viewport 作為場景快取條件；場景不變時重用 BGRA 合成結果。明確的 clip 直接合成裁切區域；標準 maxWidth/maxHeight 縮圖則從完整合成結果縮放。替換場景或關閉 renderer 時釋放舊快取。
 
 Casty zoom 透過 CDP `deviceScaleFactor` 套用：排版與輸入保留邏輯座標，截圖則使用實際像素尺寸。使用縮圖 fallback 的客戶端在 zoom 小於 1 時採用線性取樣，減少縮小內容造成的鋸齒與筆畫遺失。這些修改只在 land，Casty 與 buninu-browser 維持不變。
 
@@ -241,9 +241,9 @@ Land 提供 `wp_fractional_scale_manager_v1` 與 `wp_viewporter`。支援的客�
 
 可用已安裝的 Firefox 重跑 60% 獨立 profile 測試；此測試會明確啟用 fractional scaling，不用來驗證瀏覽器的預設值：`BUNINU_TEST_BROWSERS=1 BUNINU_TEST_FRACTIONAL_SCALE=1 bun test tests/browser-clients.test.js -t firefox`。
 
-PNG：SHM BGRA → CanvasKit 軟體合成 → CanvasKit PNG → CDP base64 → Casty 解碼。直接使用 CanvasKit 的 PNG encoder，避免中間的 RGBA／BMP 轉換。
+PNG：SHM BGRA → TypeScript 軟體合成 → 內建快速 PNG encoder（預設），或 Bun.Image → CDP base64 → Casty。
 
-JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包裝 → Bun.Image 解碼／編碼 → CDP base64 → Casty 解碼。BMP 包裝會額外複製完整畫面，Bun.Image 再解析 BMP；這是沿用 browser 編碼工具的成本，後續應改為能接收 raw pixels 的編碼路徑。現有 CanvasKit WASM 的 JPEG encoder 無法產生結果，因此不能直接替換這段。Casty 本身也會先取得低解析度變動通知，再要求完整截圖，會有額外編碼工作。
+JPEG／WebP：SHM BGRA → TypeScript 軟體合成 → BGRA BMP 包裝 → Bun.Image 編碼 → CDP base64 → Casty。BMP 包裝仍有一次完整畫面複製，但不再需要 CanvasKit readback 或通道轉換。裁切的變動通知仍有編碼成本；clip 0×0 通知不產生圖片。
 
 ### 協商原始像素
 
@@ -265,7 +265,7 @@ Casty 會驗證回傳的檔案描述及本機檔案；引擎不支援、無法�
 
 ## Renderer worker
 
-CanvasKit 合成與截圖編碼預設在 Worker 中執行，讓 Wayland socket 所在的執行緒保持可回應。使用 `bun index.js -- --no-render-worker` 或設定 `BUNINU_RENDER_WORKER=0`，可改回主執行緒繪製。先前的實驗環境變數仍受支援，但 `BUNINU_RENDER_WORKER` 的設定優先。
+軟體合成與截圖編碼預設在 Worker 中執行，讓 Wayland socket 所在的執行緒保持可回應。使用 `bun index.js -- --no-render-worker` 或設定 `BUNINU_RENDER_WORKER=0`，可改回主執行緒繪製。先前的實驗環境變數仍受支援，但 `BUNINU_RENDER_WORKER` 的設定優先。
 
 若 Worker 在 10 秒內未完成啟動、意外退出、發生未捕捉錯誤，或執行中的截圖請求超過 5 秒未回覆，Land 會終止 Worker，印出一次診斷訊息並回退到主執行緒 renderer，重新嘗試失敗的截圖。無效截圖參數仍視為一般請求錯誤，不會觸發回退。Worker 路徑最多接受八個排隊或執行中的截圖；關閉時會拒絕未完成請求並終止 Worker。
 
@@ -308,7 +308,7 @@ env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 
 ### 自動 CPU 繪製優化
 
-無旋轉、使用完整 buffer 且實體像素邊界為整數的 surface，預設可以走 JS 直接合成；fractional output scale 下，只要最終為 1:1 或最近鄰放大也可使用。完整 buffer、scale 為 1 的視窗放大後，即使寬高不是整數，也能使用快路徑；只有幾何改變時才透過 CanvasKit 建立小型一維取樣表，後續畫面直接用 JS 合成，維持原本的取樣結果。預設游標也支援縮放與小數位置。支援堆疊、預乘透明度混色、裁切與符合條件的游標。縮小、裁切來源的 viewport、不支援的次像素座標或變換，以及需要保留原本 XRGB 未使用 alpha 位元組行為的 buffer，會自動退回 CanvasKit。兩條路徑維持相同截圖尺寸；這不是 GPU 合成。
+所有場景以純 TypeScript 軟體合成，支援旋轉、翻轉、viewport 裁切、小數座標、縮放、預乘透明度與游標，不再退回 CanvasKit。完整不透明畫面仍可直接複製；舊實作完整保留在 `lib/renderer.js` 與 `lib/direct-compositor.js`，也用於畫素對照。要退回時，把 `lib/renderer.js` 的 TypeScript re-export 換成 `export {createLegacyRenderer as createRenderer};` 即可；只有使用舊 renderer 才載入 CanvasKit。這不是 GPU 合成，也不需要 AOT 或預先編譯。XRGB 的未使用 alpha 一律視為不透明。
 
 Land 會先把 SHM／DMA-BUF 內容複製成自己持有的不可變快照；環境支援時以 `SharedArrayBuffer` 儲存，renderer worker 可以共用快照，省掉另一次完整像素複製。client 持有的映射不會直接分享給 worker，原有 buffer 釋放與讀取同步仍保留。不支援共享 buffer 的 runtime 會使用一般快照。
 
@@ -320,7 +320,7 @@ bun index.js -- --no-fast-png
 bun index.js -- --gpu=/dev/dri/renderD129
 ```
 
-仍可用 `--fast-png` 明確啟用；與 `--no-fast-png` 同時指定時，以最後一個為準。快速 PNG 同時適用於 worker、主執行緒與 CanvasKit fallback。它以較大的 PNG 檔案換取較低編碼成本，不改 JPEG／WebP 設定或 Casty 截圖間隔。i5-5200U 實驗的 1080p PNG 約大一倍，因此仍須考慮終端與網路吞吐量。這個參數只影響請求 PNG 的截圖，不會強制 Casty 選用 PNG。
+仍可用 `--fast-png` 明確啟用；與 `--no-fast-png` 同時指定時，以最後一個為準。快速 PNG 同時適用於 worker 與主執行緒。它以較大的 PNG 檔案換取較低編碼成本，不改 JPEG／WebP 設定或 Casty 截圖間隔。i5-5200U 實驗的 1080p PNG 約大一倍，因此仍須考慮終端與網路吞吐量。這個參數只影響請求 PNG 的截圖，不會強制 Casty 選用 PNG。
 
 ## Direct Freedreno/KGSL 實驗
 
@@ -354,7 +354,7 @@ Renderer worker 現在預設啟用；`--lazy-dmabuf` 開啟實驗性的延後 DM
 bun index.js -- --linear-dmabuf --lazy-dmabuf --poll-interval=-1
 ```
 
-延後讀取會持有 buffer 與其映射，直到截圖需要像素。尚未擷取就被新幀取代的畫面，直接釋放，不做 CPU 同步或複製；真正擷取的畫面則在 DMA-BUF 讀取同步期間完成複製，之後才釋放。Renderer worker 將 CanvasKit 合成與圖片編碼移出 Wayland socket 執行緒，仍然是軟體繪製；新快照送進 Worker 時會增加一次 structured clone 像素複製，並非零複製 GPU 合成。SHM 維持原本立即建立快照的行為。
+延後讀取會持有 buffer 與其映射，直到截圖需要像素。尚未擷取就被新幀取代的畫面，直接釋放，不做 CPU 同步或複製；真正擷取的畫面則在 DMA-BUF 讀取同步期間完成複製，之後才釋放。Renderer worker 將 軟體合成與圖片編碼移出 Wayland socket 執行緒，仍然是軟體繪製；新快照送進 Worker 時會增加一次 structured clone 像素複製，並非零複製 GPU 合成。SHM 維持原本立即建立快照的行為。
 
 原生 Adreno 830 實驗使用相同的 800×600、十秒 glmark2 build 場景、busy polling 與 Casty 真正的 JPEG 串流程式；接收端沒有在終端繪製圖片：
 

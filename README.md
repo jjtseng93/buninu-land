@@ -149,7 +149,7 @@ References: [npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/),
 - `lib/protocol.js`: reads standard XML at runtime with `Bun.XML.parse()`, preserving opcode and argument order.
 - `lib/transport.js`: loads only libc through Bun FFI; handles Unix sockets, `recvmsg`/`SCM_RIGHTS`, nonblocking transport, socket locking, and FD cleanup.
 - `lib/compositor.js`: per-client object tables, SHM pool/buffer lifetimes, surface commits, xdg configure/ack, and frame callbacks.
-- `lib/renderer.js`: CPU compositing using the browser's CanvasKit WASM. `lib/frame.js` is an unchanged copy of the browser's `Bun.Image` encoding utilities.
+- `lib/renderer.ts` / `lib/direct-compositor.ts`: pure TypeScript CPU composition loaded directly by Bun; `lib/renderer.js` preserves the JS entry. The original JS/CanvasKit renderer remains available as `createLegacyRenderer`. `lib/frame.js` reuses the browser’s `Bun.Image` encoding utilities.
 
 At commit time, SHM pixels are copied into compositor-owned memory using libc `pread`, then the client buffer is released. This lets the client safely reuse its buffer and avoids compositor SIGBUS faults caused by clients truncating an mmap backing file. Destroying a pool resource does not close its FD while buffers still reference it.
 
@@ -243,7 +243,7 @@ automatically. Restart an existing Land instance to load this support.
 
 ## Frame conversion costs
 
-The renderer caches CanvasKit images for immutable SHM snapshots, reuses one full-size and one preview drawing surface, and reuses composed images while pixels, geometry, stacking, cursor and viewport remain unchanged. Previews reuse an existing matching full image without forcing a full-size repaint. This retains drawing buffers between captures; replaced images and resized buffers are released, and shutdown releases the renderer's resources.
+The renderer caches BGRA composition by immutable SHM snapshots, geometry, stacking, cursor and viewport. Explicit clips compose only the requested region; standard maxWidth/maxHeight previews scale the full composition. Replaced scenes and renderer shutdown release old caches.
 
 Casty zoom is applied through CDP `deviceScaleFactor`: layout and input retain logical coordinates, while screenshots use physical pixel dimensions. For clients using the resampling fallback, zoom below 1 uses linear image sampling to reduce aliasing when shrinking content. These changes are confined to land; Casty and buninu-browser remain unchanged.
 
@@ -260,9 +260,9 @@ Restart land and its clients after upgrading to expose the new protocols. If Fir
 
 To repeat the installed Firefox test at 60% in an isolated profile with fractional scaling explicitly enabled (this does not test the browser's default preference): `BUNINU_TEST_BROWSERS=1 BUNINU_TEST_FRACTIONAL_SCALE=1 bun test tests/browser-clients.test.js -t firefox`.
 
-PNG: SHM BGRA → CanvasKit software compositing → CanvasKit PNG → CDP base64 → Casty decoding. Using CanvasKit's PNG encoder directly avoids intermediate RGBA/BMP conversion.
+PNG: SHM BGRA → TypeScript software composition → built-in fast PNG encoder (default), or Bun.Image → CDP base64 → Casty.
 
-JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP wrapping → Bun.Image decoding/encoding → CDP base64 → Casty decoding. BMP wrapping adds a full-frame copy, and Bun.Image then parses the BMP. This cost comes from reusing the browser's encoding utilities; a future encoding path should accept raw pixels directly. The existing CanvasKit WASM's JPEG encoder does not produce output, so it cannot directly replace this path. Casty also receives low-resolution change notifications before requesting full screenshots, adding encoding work.
+JPEG/WebP: SHM BGRA → TypeScript software composition → BGRA BMP wrapper → Bun.Image encoding → CDP base64 → Casty. BMP wrapping still copies a full frame, but no CanvasKit readback or channel conversion is needed. Cropped change notifications still incur encoding work; clip 0×0 notifications produce no image.
 
 ### Negotiated raw frames
 
@@ -282,7 +282,7 @@ The private Kitty query uses `f=1111970369` and requires the exact reply `OK Bun
 
 ## Renderer worker
 
-CanvasKit composition and screenshot encoding run in a worker by default, keeping the Wayland socket thread responsive. Use `bun index.js -- --no-render-worker` or set `BUNINU_RENDER_WORKER=0` to render on the main thread instead. The earlier experimental environment variable remains supported, with `BUNINU_RENDER_WORKER` taking precedence.
+Software composition and screenshot encoding run in a worker by default, keeping the Wayland socket thread responsive. Use `bun index.js -- --no-render-worker` or set `BUNINU_RENDER_WORKER=0` to render on the main thread instead. The earlier experimental environment variable remains supported, with `BUNINU_RENDER_WORKER` taking precedence.
 
 If the worker cannot start within 10 seconds, exits unexpectedly, raises an uncaught error, or does not answer an active capture within 5 seconds, Land terminates it and falls back to the main-thread renderer with one diagnostic message. The failed capture is retried there. Invalid screenshot options remain ordinary request errors. The worker path allows at most eight queued/in-flight captures; shutdown rejects outstanding requests and terminates the worker.
 
@@ -325,7 +325,7 @@ This accelerates **client rendering**. Land still imports CPU-mappable linear bu
 
 ### Automatic CPU rendering optimizations
 
-Unrotated, whole-buffer surfaces with integer physical positions can use a direct JS compositor by default, including fractional output scales when the final mapping is 1:1 or nearest-neighbour upscaling. Whole-buffer scale-1 surfaces also support noninteger enlarged dimensions: small, cached one-dimensional CanvasKit sampling maps preserve the original pixel selection, while each frame is composed directly in JS. The built-in pointer supports scaled and fractional positions. It handles stacking, premultiplied transparency, clipping and compatible cursors. Downscaling, cropped viewports, unsupported subpixel geometry or transforms, and buffers whose unused XRGB alpha bytes need the legacy behavior automatically use CanvasKit. Both paths keep the same screenshot dimensions; this does not enable GPU composition.
+All scenes use pure TypeScript software composition, including rotation, flips, viewport crops, fractional positions, scaling, premultiplied transparency and cursors, without a CanvasKit fallback. Full opaque frames retain the copy shortcut. The original implementations remain in `lib/renderer.js` and `lib/direct-compositor.js`, also used for pixel comparisons. To revert, replace the TypeScript re-export in `lib/renderer.js` with `export {createLegacyRenderer as createRenderer};`. CanvasKit loads only when the legacy renderer is used. This is CPU composition and requires neither AOT nor a build step. Unused XRGB alpha is always treated as opaque.
 
 Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
 
@@ -337,7 +337,7 @@ bun index.js -- --no-fast-png
 bun index.js -- --gpu=/dev/dri/renderD129
 ```
 
-`--fast-png` remains accepted for explicit selection; when combined with `--no-fast-png`, the last option wins. Fast PNG applies to both renderer modes and the CanvasKit fallback. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
+`--fast-png` remains accepted for explicit selection; when combined with `--no-fast-png`, the last option wins. Fast PNG applies to both worker and main-thread rendering. It trades larger PNG files for less encoding CPU; it does not change JPEG/WebP settings or Casty's capture interval. In the Intel i5-5200U experiment, 1080p PNG files were about twice as large, so terminal/network throughput must also be considered. This option only affects captures requested as PNG; it does not force Casty to select PNG.
 
 ## Direct Freedreno/KGSL experiment
 
@@ -371,7 +371,7 @@ The renderer worker is now enabled by default. `--lazy-dmabuf` enables experimen
 bun index.js -- --linear-dmabuf --lazy-dmabuf --poll-interval=-1
 ```
 
-Deferred DMA-BUF capture retains the buffer and its mapping until a screenshot needs its pixels. Replaced, uncaptured frames are released without CPU synchronization or copying. Captured frames are copied under DMA-BUF read synchronization before release. The renderer worker moves CanvasKit composition and image encoding off the Wayland socket thread. It still uses software rendering and adds a structured-clone pixel copy when sending a new snapshot to the worker; this is not zero-copy GPU composition. SHM retains its existing eager snapshot behavior.
+Deferred DMA-BUF capture retains the buffer and its mapping until a screenshot needs its pixels. Replaced, uncaptured frames are released without CPU synchronization or copying. Captured frames are copied under DMA-BUF read synchronization before release. The renderer worker moves software composition and image encoding off the Wayland socket thread. It still uses software rendering and adds a structured-clone pixel copy when sending a new snapshot to the worker; this is not zero-copy GPU composition. SHM retains its existing eager snapshot behavior.
 
 A native Adreno 830 experiment used the same 800×600, ten-second glmark2 build scene with busy polling and Casty's actual JPEG streaming code. The frontend receiver did not paint images in a terminal:
 

@@ -247,6 +247,8 @@ JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包�
 
 ### 協商原始像素
 
+不透明的全螢幕 BGRA surface 可直接將不可變的客戶端快照寫入 raw 檔案，只合成並覆寫客戶端遊標所在的小區塊。產生端會完成所有寫入才回傳描述資訊；Kitty 傳輸和檔案所有權保持不變。遊標區塊過大或使用內建指標時，維持完整合成路徑。
+
 搭配相容的 Casty，raw screencast 會明確帶入私有擴充 `clip: {x: 0, y: 0, width: 0, height: 0, scale: 1}`。Land 在場景更新時回傳固定 1×1 PNG 佔位資料，不擷取或編碼預覽；Casty 再要求真正的 raw 畫面。一般 screencast 與標準截圖保持原有行為。此約定僅在 screencast 事件路徑處理；一般 captureScreenshot 仍拒絕零尺寸。vendor CDP server 與 Browser 同步，Land 專用 hooks 另外記錄於 patch。
 
 標準 CDP `clip` 可與 RGBA／BGRA 檔案共用；Land 直接合成指定範圍，小數尺寸保留到換算實體像素時才取整。`scale: 1` 不額外縮放，避免終端因一列誤差退回慢路徑。

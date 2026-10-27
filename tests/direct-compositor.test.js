@@ -265,3 +265,65 @@ test('fractional enlargement and scaled pointer match CanvasKit without fallback
   }
  }finally{reference.close();renderer.close();}
 });
+
+test('scaled and fractional cursor overlays keep desktop on direct path', async () => {
+  const labels=[];
+  const bg=surface(false,0,0);
+  bg.viewportDestination=[80,60];
+  for(let i=0;i<bg.pixels.bytes.length;i+=4)bg.pixels.bytes.set([30,60,90,255],i);
+  const cursor=surface(true,0,0);cursor.scale=2;
+  const comp={fastPng:true,width:80,height:60,deviceScaleFactor:1.75,input:{x:21,y:19,cursor:{surface:cursor,x:3,y:4}},
+    wm:{renderSurfaces:()=>[bg],origin:s=>s.origin},measure:s=>labels.push(s)};
+  const actual=await createRenderer(comp,{canvasKit:CK});
+  const reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
+  try {
+    for(const [x,y] of [[21,19],[22,20],[22.25,20.5],[-1,-2],[79,59],[100,100]]) {
+      comp.input.x=x;comp.input.y=y;
+      const expected=decode(await reference.screenshot());labels.length=0;
+      const got=decode(await actual.screenshot());
+      expect(labels.some(s=>s.endsWith(':direct-compose'))).toBe(true);
+      // Two premultiplied compositing passes may differ by one rounding unit.
+      let max=0;for(let i=0;i<got.length;i++)max=Math.max(max,Math.abs(got[i]-expected[i]));
+      expect(max).toBeLessThanOrEqual(1);
+    }
+  } finally {actual.close();reference.close();}
+});
+
+test('opaque occlusion preserves uncovered rows and translucent layers', async () => {
+  const bottom=surface(true,0,0),top=surface(false,-2,5),overlay=surface(true,3,8);
+  top.viewportDestination=[24,6];
+  // Upscale instead of downscale to exercise direct composition.
+  top.pixels.height=3;
+  let layers=[bottom,top,overlay];
+  const comp={width:24,height:24,fastPng:true,input:{},
+    wm:{renderSurfaces:()=>layers,origin:s=>s.origin}};
+  const renderer=await createRenderer(comp,{canvasKit:CK}),reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
+  try {
+    for(const mode of ['covered','moved','partial','transparent','removed']) {
+      if(mode==='moved')top.origin.y=9;
+      if(mode==='partial')top.origin.x=2;
+      if(mode==='transparent') {top.pixels={...top.pixels,format:0,bytes:top.pixels.bytes.slice()};top.pixels.bytes[3]=0;top.pixels.bytes.fill(0,0,3);}
+      if(mode==='removed')layers=[bottom,overlay];
+      expect(decode(await renderer.screenshot())).toEqual(decode(await reference.screenshot()));
+    }
+  } finally {renderer.close();reference.close();}
+});
+
+test('full-output copy blends moving cursors without mutating client pixels', async () => {
+  const bg=surface(false,0,0);
+  const packed=new Uint8Array(bg.pixels.width*bg.pixels.height*4);
+  for(let y=0;y<bg.pixels.height;y++)packed.set(bg.pixels.bytes.subarray(y*bg.pixels.stride,y*bg.pixels.stride+bg.pixels.width*4),y*bg.pixels.width*4);
+  bg.pixels={...bg.pixels,stride:bg.pixels.width*4,bytes:packed};
+  const saved=packed.slice(),cursor=surface(true,0,0);cursor.scale=2;
+  const comp={width:bg.pixels.width,height:bg.pixels.height-1,fastPng:true,input:{},wm:{renderSurfaces:()=>[bg],origin:s=>s.origin}};
+  const renderer=await createRenderer(comp,{canvasKit:CK}),reference=await createRenderer(comp,{canvasKit:CK,directComposition:false});
+  try {
+    for(const position of [[2,3],[8.25,7],[-2,0],[18,14],null]) {
+      comp.input=position?{x:position[0],y:position[1],cursor:{surface:cursor,x:1,y:1}}:{};
+      const got=decode(await renderer.screenshot()),expected=decode(await reference.screenshot());
+      let max=0;for(let i=0;i<got.length;i++)max=Math.max(max,Math.abs(got[i]-expected[i]));
+      expect(max).toBeLessThanOrEqual(1);
+      expect(packed).toEqual(saved);
+    }
+  } finally {renderer.close();reference.close();}
+});

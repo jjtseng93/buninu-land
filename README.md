@@ -266,6 +266,8 @@ JPEG/WebP: SHM BGRA → CanvasKit software compositing → RGBA readback → BMP
 
 ### Negotiated raw frames
 
+With compatible Casty, raw screencasts opt into `clip: {x: 0, y: 0, width: 0, height: 0, scale: 1}`, a private extension. Land emits a fixed 1×1 PNG placeholder on scene updates without capturing or encoding a preview; Casty then requests the real raw frame. Ordinary screencasts and standard screenshots remain unchanged. This is handled only by the screencast event path; ordinary captureScreenshot still rejects zero-sized clips. The vendor CDP server is synchronized with Browser, with Land-specific hooks recorded separately.
+
 Standard CDP `clip` also works with RGBA/BGRA files: Land composes the requested rectangle at its output size, retaining fractional dimensions until physical-pixel rounding. `scale: 1` preserves 1:1 pixels; the CDP server and vendor copy remain unchanged.
 
 Casty also sends a private `clip` on `Page.startScreencast`. It takes precedence over fallback max limits and crops at native pixel density, without resizing. Width/height are CSS units; output pixels still follow device scale. This extension is not standard CDP.

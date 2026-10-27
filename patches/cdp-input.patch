@@ -1,20 +1,20 @@
 --- vendor/buninu-browser/cdp-server.js
 +++ lib/cdp-server.js
-@@ -448,0 +449 @@
+@@ -459,0 +460 @@
 +      if (ctx.resolveNavigationUrl) params = { ...params, url: ctx.resolveNavigationUrl(params.url) };
-@@ -687,0 +689 @@
+@@ -701,0 +703 @@
 +      if (ctx.dispatchMouseEvent) { await ctx.dispatchMouseEvent(params); return {}; }
-@@ -715,0 +718 @@
+@@ -742,0 +745 @@
 +      if (ctx.dispatchKeyEvent) { await ctx.dispatchKeyEvent(params); return {}; }
-@@ -798,0 +802 @@
+@@ -825,0 +829 @@
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -907,0 +912 @@
+@@ -955,0 +960 @@
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -1000,0 +1006 @@
+@@ -1048,0 +1054 @@
 +  const url = state.context?.resolveNavigationUrl?.("about:blank") ?? "about:blank";
-@@ -1008 +1014 @@
+@@ -1058 +1064 @@
 -    url: "about:blank",
 +    url,
-@@ -1016 +1022 @@
+@@ -1066 +1072 @@
 -        url: "about:blank",
 +        url,

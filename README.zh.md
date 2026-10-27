@@ -247,6 +247,8 @@ JPEG／WebP：SHM BGRA → CanvasKit 軟體合成 → RGBA readback → BMP 包�
 
 ### 協商原始像素
 
+搭配相容的 Casty，raw screencast 會明確帶入私有擴充 `clip: {x: 0, y: 0, width: 0, height: 0, scale: 1}`。Land 在場景更新時回傳固定 1×1 PNG 佔位資料，不擷取或編碼預覽；Casty 再要求真正的 raw 畫面。一般 screencast 與標準截圖保持原有行為。此約定僅在 screencast 事件路徑處理；一般 captureScreenshot 仍拒絕零尺寸。vendor CDP server 與 Browser 同步，Land 專用 hooks 另外記錄於 patch。
+
 標準 CDP `clip` 可與 RGBA／BGRA 檔案共用；Land 直接合成指定範圍，小數尺寸保留到換算實體像素時才取整。`scale: 1` 不額外縮放，避免終端因一列誤差退回慢路徑。
 
 Casty 也會在 `Page.startScreencast` 傳入私有 `clip`；優先於相容用的 max 限制，以原像素密度裁切、不縮放。寬高是 CSS 單位，實體像素仍隨 device scale 換算。此擴充不是標準 CDP。

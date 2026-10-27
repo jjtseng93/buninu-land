@@ -22,7 +22,7 @@ test.skipIf(!Bun.which('weston-simple-shm'))('weston-simple-shm animates and CDP
     ws = new WebSocket(`ws://127.0.0.1:${app.server.port}/devtools/browser/cdp-server`);
     await new Promise((resolve,reject) => { ws.onopen=resolve; ws.onerror=reject; });
     let id = 0; const pending = new Map(), frames = [];
-    ws.onmessage = ({data}) => { const m = JSON.parse(data); if (m.id) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.reject(Error(m.error.message)) : p.resolve(m.result); } else if (m.method === 'Page.screencastFrame') frames.push(m); };
+    ws.onmessage = ({data}) => { const m = JSON.parse(data); if (m.id) { const p = pending.get(m.id); pending.delete(m.id); m.error ? p.reject(Error(m.error.message)) : p.resolve(m.result); } else if (m.method === 'Page.screencastFrame') { frames.push(m); call('Page.screencastFrameAck',{sessionId:m.params.sessionId},m.sessionId).catch(()=>{}); } };
     const call = (method, params={}, sessionId) => new Promise((resolve,reject) => { const n = ++id; pending.set(n,{resolve,reject}); ws.send(JSON.stringify({id:n,method,params,sessionId})); });
     const { targetId } = await call('Target.createTarget', {url:'about:blank'});
     const { sessionId } = await call('Target.attachToTarget', {targetId,flatten:true});

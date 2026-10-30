@@ -104,6 +104,18 @@ Casty 傳入的 Chromium 相容 flags（例如 `--no-sandbox`、`--user-data-dir
 bun compositor.js --headless --remote-debugging-port=9222
 ```
 
+Headless 啟動後立即提供代表現有桌面的單一 CDP page；尚未連入 Wayland client
+時也有正常的桌面背景。不需要 Kitty 終端機，也不用事先建立 target。
+在另一個終端機執行：
+
+```sh
+bunx @drxiaozhi/casty --attach 9222 --no-shortcuts
+```
+
+加上 `--readonly` 可只觀看而不傳送輸入。觀看端斷線後，Land 與 Wayland
+clients 繼續運行。一般 Casty 啟動也會重用同一個桌面 target。
+CDP 監聽 `127.0.0.1`，其他機器需透過 tunnel 連接。
+
 手動 headless 與 Casty 自動啟動可並存，預設會分配不同 socket。Casty 的 URL 不會開網頁；顯示的是 Wayland 桌面。
 
 `bun compositor.js --help` 列出選項。預設從 `wayland-buninu` 開始尋找可用 socket，預設畫面 800×600。`--socket=NAME` 可選擇其他 socket；`--remote-debugging-port=0` 自動選 port。`BUNINU_LOG=1` 將 Wayland requests 寫到 stderr。
@@ -141,7 +153,7 @@ Linux／Android 常見路徑是 `~/.npm/_npx`，但自訂 npm cache 設定可能
 
 - `index.js`：沿用 browser 的套件 launcher，預設啟動 Casty，設定 `CASTY_BROWSER` 指向 compositor。
 - `compositor.js`：headless controller、CDP context adapter、生命週期與 CLI。
-- `lib/cdp-server.js`：沿用 browser CDP server，增加兩個可選的原始輸入 hook，以及可選的導航網址轉換 hook；未修改原版保留於 `vendor/buninu-browser/cdp-server.js`，差異見 `patches/cdp-input.patch`。`user-agent.js` 也原樣沿用，因此 CDP 保留 Buninu 的相容識別。
+- `lib/cdp-server.js`：沿用 browser CDP server，增加兩個可選的原始輸入 hook，可選的導航網址轉換 hook，以及單一桌面 target；未修改原版保留於 `vendor/buninu-browser/cdp-server.js`，差異見 `patches/cdp-input.patch`。`user-agent.js` 也原樣沿用，因此 CDP 保留 Buninu 的相容識別。
 - `lib/protocol.js`：使用 `Bun.XML.parse()` 在執行時讀標準 XML，依原始順序處理 opcode／argument。
 - `lib/transport.js`：僅以 Bun FFI 載入 libc；Unix socket、`recvmsg`／`SCM_RIGHTS`、非阻塞傳輸、socket lock、FD 清理。
 - `lib/compositor.js`：每個 client 的 object table、SHM pool／buffer 生命週期、surface commit、xdg configure／ack、frame callback。

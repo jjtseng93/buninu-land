@@ -58,6 +58,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
     compositor.fastPng = args.filter(arg => arg === '--fast-png' || arg === '--no-fast-png').at(-1) !== '--no-fast-png';
     renderer = await createRenderer(compositor);
     const context = {
+      desktopTarget: { url: join(runtime, display), width, height },
       onFrame(fn) { compositor.onFrame = fn; },
       dispatchMouseEvent: p => compositor.input.mouse(p),
       dispatchKeyEvent: p => compositor.input.key(p),

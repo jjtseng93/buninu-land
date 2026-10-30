@@ -104,6 +104,18 @@ To run headless directly:
 bun compositor.js --headless --remote-debugging-port=9222
 ```
 
+Headless startup immediately exposes one CDP page for the existing desktop,
+including its normal background before any Wayland client connects. No Kitty
+terminal or preliminary target creation is needed. In another terminal:
+
+```sh
+bunx @drxiaozhi/casty --attach 9222 --no-shortcuts
+```
+
+Add `--readonly` to view without sending input. Disconnecting the viewer leaves
+Land and its Wayland clients running. Normal Casty launches reuse this same
+desktop target. CDP listens on `127.0.0.1`; other machines need a tunnel.
+
 Manual headless and Casty-managed instances can coexist with different automatically allocated sockets. URLs supplied to Casty do not open web pages; the display shows the Wayland desktop.
 
 Run `bun compositor.js --help` for options. Default socket allocation starts at `wayland-buninu`, and the default display size is 800×600. Use `--socket=NAME` to select another socket or `--remote-debugging-port=0` to select a port automatically. `BUNINU_LOG=1` writes Wayland requests to stderr.
@@ -145,7 +157,7 @@ References: [npm cache](https://docs.npmjs.com/cli/v11/commands/npm-cache/),
 
 - `index.js`: the package launcher adapted from the browser. It starts Casty by default and sets `CASTY_BROWSER` to the compositor.
 - `compositor.js`: headless controller, CDP context adapter, lifecycle management, and CLI.
-- `lib/cdp-server.js`: browser CDP server with two optional raw-input hooks and an optional navigation URL hook; the unchanged original is in `vendor/buninu-browser/cdp-server.js`, with the diff in `patches/cdp-input.patch`. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
+- `lib/cdp-server.js`: browser CDP server with optional raw-input hooks, a navigation URL hook and a singleton desktop target; the unchanged original is in `vendor/buninu-browser/cdp-server.js`, with the diff in `patches/cdp-input.patch`. `user-agent.js` is also unchanged, preserving Buninu's CDP compatibility identity.
 - `lib/protocol.js`: reads standard XML at runtime with `Bun.XML.parse()`, preserving opcode and argument order.
 - `lib/transport.js`: loads only libc through Bun FFI; handles Unix sockets, `recvmsg`/`SCM_RIGHTS`, nonblocking transport, socket locking, and FD cleanup.
 - `lib/compositor.js`: per-client object tables, SHM pool/buffer lifetimes, surface commits, xdg configure/ack, and frame callbacks.

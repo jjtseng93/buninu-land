@@ -9,23 +9,23 @@
 +      initial.navigated.resolve();
 +      initial.settled.resolve();
 +    }
-@@ -459,0 +468 @@
+@@ -479,0 +488 @@
 +      if (ctx.resolveNavigationUrl) params = { ...params, url: ctx.resolveNavigationUrl(params.url) };
-@@ -701,0 +711 @@
+@@ -725,0 +735 @@
 +      if (ctx.dispatchMouseEvent) { await ctx.dispatchMouseEvent(params); return {}; }
-@@ -742,0 +753 @@
+@@ -766,0 +777 @@
 +      if (ctx.dispatchKeyEvent) { await ctx.dispatchKeyEvent(params); return {}; }
-@@ -825,0 +837,3 @@
+@@ -849,0 +861,3 @@
 +  // Casty's normal launch requests a target too; reuse the same desktop.
 +  if (state.context?.desktopTarget && state.targets.size) return state.targets.values().next().value;
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -955,0 +970 @@
+@@ -999,0 +1014 @@
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -1048,0 +1064 @@
+@@ -1091,0 +1107 @@
 +  const url = state.context?.resolveNavigationUrl?.("about:blank") ?? "about:blank";
-@@ -1058 +1074 @@
+@@ -1102 +1118 @@
 -    url: "about:blank",
 +    url,
-@@ -1066 +1082 @@
+@@ -1110 +1126 @@
 -        url: "about:blank",
 +        url,

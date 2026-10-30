@@ -5,7 +5,7 @@
   "vendor/canvaskit/canvaskit.wasm": "bd669c88bd033eaf62d673103a42231a737c6d12e4cc99f8548b2784b5772430",
   "protocols/wayland.xml": "0c371e9c31f8178008a7ddecf431cbe12ec4b29ef7714803ecd3e20af925e7ed",
   "protocols/xdg-shell.xml": "9d9e27038ca722f159a361293f8c6cd270dab907ab52de5b8ecfbb8d6b9651c2",
-  "vendor/buninu-browser/cdp-server.js": "a55b4b26138757db05ea8f64a462aa4ceeda2f7a7b5d16cfa2cc9f0ff469404b",
+  "vendor/buninu-browser/cdp-server.js": "7ecb7ea46bceb5489115774f169460cab8ce24e2352a43f71f77bc70eb3aab73",
   "protocols/viewporter.xml": "dcb12279a03746301fe490aaed4b38a403485a925abfce2ccfceb644e104fe71",
   "protocols/fractional-scale-v1.xml": "5941de5d28f427ecdadddc8623a6f6af0a30b0ab4726847236ba7a7652b81316",
   "protocols/linux-dmabuf-v1.xml": "0681c01199393662229b0d9f71a4bd502350ea8f782a7049fa30e392b50fb2c8",

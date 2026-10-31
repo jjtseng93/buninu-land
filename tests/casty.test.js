@@ -82,3 +82,17 @@ test.skipIf(!available)('headless desktop is immediately attachable and survives
     client?.close();child?.kill();if(child)await child.exited;app.close();
   }
 },15000);
+
+test.skipIf(!existsSync(new URL('../../casty/lib/browser.js', import.meta.url)))('Casty CDP session executes native desktop JavaScript and sees wallpaper',async()=>{
+ const {start}=await import('../compositor.js');
+ const {setupPage}=await import('../../casty/lib/browser.js');
+ const app=await start(['--remote-debugging-port=0',`--socket=casty-wallpaper-${process.pid}`,'--window-size=320,240']);let client;
+ try{
+  ({client}=await setupPage({port:app.server.port},{width:320,height:240}));
+  await client.send('Page.navigate',{url:'javascript:setWallpaper("/missing-wallpaper")'});
+  expect(app.wallpaper.current.path).toBe(app.wallpaper.fallback);
+  expect((await client.send('Runtime.evaluate',{expression:'Bun.version',returnByValue:true})).result.value).toBe(Bun.version);
+  const result=await client.send('Page.captureScreenshot',{format:'png'});
+  expect((await new Bun.Image(Buffer.from(result.data,'base64')).metadata()).width).toBe(320);
+ }finally{client?.close();app.close();}
+});

@@ -75,6 +75,44 @@ QT_QPA_PLATFORM=wayland konsole
 
 Konsole 的啟動、畫面顯示，以及鍵盤與滑鼠輸入已驗證。
 
+### 桌布與桌面 JavaScript
+
+透過引擎參數指定桌布：
+
+```sh
+bun index.js -- --wallpaper /path/to/image.jpg
+bun index.js --headless --wallpaper=/path/to/image.jpg
+```
+
+資料夾、不存在／無法讀取的檔案，或不支援／損壞的圖片，都會退回 Land 內建的
+`wallpaper.jpg`，不是指定資料夾裡的檔案。未傳參數時保留原本純色背景，直到呼叫
+`setWallpaper()`。圖片維持比例，置中裁切填滿畫面。
+
+在 Casty 網址列輸入：
+
+```js
+javascript:setWallpaper('/path/to/image.jpg')
+javascript:setWallpaper(prompt('Wallpaper path'))
+javascript:alert(1 + 2)
+javascript:if (confirm('Change wallpaper?')) setWallpaper('/path/to/image.jpg')
+```
+
+`setWallpaper(path)` 回傳 Promise，解析為實際採用的絕對路徑；fallback 時回傳內建
+圖片的路徑。相對路徑以 Land 的工作目錄為準；null 路徑（取消 `prompt`）不更換桌布，
+解析為 null。一般網址仍顯示 Wayland socket 位址；
+`javascript:` 不會建立新分頁，也不會讓 Wayland client 導航。
+
+桌面指令在首次使用時才建立的持續性 worker 裡，以原生 Bun JavaScript 執行，
+**沒有 sandbox**，可正常使用 Bun 的檔案與程序權限。它與 client 的 JavaScript、
+render worker 都是分開的。同步 `alert`、`confirm`、`prompt` 只阻塞指令 worker，
+Land 仍能處理 UI 與 Wayland 事件。關閉 Land 時會終止 worker、取消待回覆的執行請求，
+並關閉對話框。
+
+對話框原樣重用 Buninu Browser 現有的 `BrowserDialog` UI 與 renderer，包含捲動、
+文字選取、複製貼上與鍵盤輸入。對話框需要本機已有 `buninu-browser`：依序從模組解析、
+隔壁 checkout、Bun 安裝位置的全域模組目錄，以及 `/usr/lib/node_modules` 尋找。
+不會自動安裝套件。單純桌布或不使用對話框的指令，不會載入瀏覽器 renderer／CanvasKit。
+
 ### Chromium 與 Firefox
 
 在另一個終端，使用與 compositor 相同的 socket 目錄與名稱。作者實測 Chromium 只需設定 `XDG_RUNTIME_DIR`、`WAYLAND_DISPLAY`，再加上 `--ozone-platform=wayland --no-sandbox` 即可啟動，不需要 `--disable-gpu`：
@@ -274,6 +312,20 @@ Land 的私有 `Page.captureScreenshot` 格式 `bgra` 與 `rgba`，在 `data` �
 Casty 會驗證回傳的檔案描述及本機檔案；引擎不支援、無法共用檔案、錯誤或逾時時，維持原本設定的編碼。CDP server 與 browser vendor 副本未為此修改。
 
 私有 Kitty 查詢使用 `f=1111970369`，必須收到完整的 `OK Buninu1 bgra` 或 `OK Buninu1 rgba`；只有 `OK` 不足以啟用。即使明確指定其他編碼，raw 仍優先，該編碼改作 fallback。BGRA 顯示使用私有格式；RGBA 維持標準 `f=32`。私有格式與偏好回覆都不是上游 Kitty 標準。原生 bunterm 根據 framebuffer 通道位元配置選擇格式；未知配置保守使用 PNG。瀏覽器中的 jsgotty 不宣告此擴充。
+
+### 桌布準備與快取生命週期
+
+由 Bun.Image 使用 bilinear 縮放，輸出壓縮等級 0 的 PNG，再由小型 JS decoder
+將自己產生的非交錯 RGBA8 像素轉成 BGRA，透明部分疊到原本背景色上。這條路徑
+不載入 CanvasKit，也不使用 native addon。每個邏輯寬／高／device scale 組合都保留
+準備好的 surface，直到換桌布或關閉 Land；切回用過的尺寸不會再次解碼或縮放。
+一般 TS compositor 將桌布視為最底層 surface；不透明且覆蓋畫面的 client 仍可走
+原本整張畫面跳過合成的快路徑。Render worker 沿用現有 surface 傳輸接收不可變像素。
+
+每份尺寸快取需要每實體像素 4 bytes，1920×1080 約 7.9 MiB。來源檔案、解碼與
+cover 中間圖片都有 bytes／像素上限；目前桌布的所有已要求尺寸會刻意留在快取，
+與指令 worker 的記憶體分開看待。換桌布會釋放舊尺寸快取。可執行
+`bun bench/wallpaper.js` 重現本地比較，詳見[測試說明](bench/wallpaper.md)。
 
 ## Renderer worker
 

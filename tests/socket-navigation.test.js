@@ -21,7 +21,7 @@ test('Land reports its selected socket for initial targets, navigation events an
   expect(target.url).toBe(expected);client=await connect(app.server.port);
   expect((await client.call('Page.getFrameTree')).frameTree.frame.url).toBe(expected);
   const {sessionId}=await client.call('Target.attachToTarget',{targetId:target.id,flatten:true});
-  for(const url of ['https://example.invalid','about:audio','javascript:throw new Error("not executed")']){
+  for(const url of ['https://example.invalid','about:audio']){
    const before=client.events.length;await client.call('Page.navigate',{url},sessionId);
    for(let i=0;i<100&&!client.events.slice(before).some(e=>e.method==='Page.frameNavigated');i++)await Bun.sleep(5);
    expect(client.events.slice(before).find(e=>e.method==='Page.frameNavigated')?.params.frame.url).toBe(expected);
@@ -29,6 +29,11 @@ test('Land reports its selected socket for initial targets, navigation events an
    expect(history.entries[history.currentIndex].url).toBe(expected);
    expect((await client.call('Page.getFrameTree',{},sessionId)).frameTree.frame.url).toBe(expected);
   }
+  const before=client.events.length,historyBefore=await client.call('Page.getNavigationHistory',{},sessionId);
+  await client.call('Page.navigate',{url:'javascript:globalThis.landCommandExecuted=true'},sessionId);
+  expect((await client.call('Runtime.evaluate',{expression:'landCommandExecuted',returnByValue:true},sessionId)).result.value).toBe(true);
+  expect(await client.call('Page.getNavigationHistory',{},sessionId)).toEqual(historyBefore);
+  expect(client.events.slice(before).some(e=>e.method==='Page.frameNavigated')).toBe(false);
   expect((await(await fetch(`http://127.0.0.1:${app.server.port}/json/list`)).json())[0].url).toBe(expected);
  }finally{client?.ws.close();app?.close();first?.close();if(previous===undefined)delete process.env.XDG_RUNTIME_DIR;else process.env.XDG_RUNTIME_DIR=previous;rmSync(dir,{recursive:true,force:true});}
 });

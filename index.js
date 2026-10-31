@@ -99,6 +99,8 @@ Engine options (after -- for casty; directly after --headless):
       CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT
       Output size (default 800,600)
+  --wallpaper PATH, --wallpaper=PATH
+      Image; folders/unsupported files use the built-in wallpaper.jpg
 
   --gpu[=PATH], --gpu [PATH]
       Linear DMA-BUF + lazy reads + poll 2 ms; optional DRM render node

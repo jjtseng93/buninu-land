@@ -51,3 +51,20 @@ The execution adapter bounds command time; Linux commands run asynchronously.
 See `LICENSES/jsmdcui.txt`. No dependencies were installed.
 
 - `lib/direct-compositor.ts` and `lib/renderer.ts`: ported from the sibling MIT-licensed buninu-land-ts commit `78bcc896d1c3f7bc4431ddc29a778b451a7d6de2`, retaining TypeScript and adapting imports to the existing JS modules. The previous JS/CanvasKit implementations remain in their original JS files as legacy exports for rollback and comparisons; the default TypeScript path does not load CanvasKit. The sibling renderer’s subsequent uncommitted `Capture`/`DirectRenderer` refactor was also adapted, preserving rejection of null capture limits.
+
+
+Wallpaper preparation uses Bun.Image bilinear resize and compression-level-0 PNG,
+then a project-local RGBA8 PNG scanline decoder and BGRA conversion. No new codec,
+native library or package is installed. `wallpaper.jpg` is the supplied built-in
+fallback asset. The software TS compositor receives it as an ordinary render-only
+bottom surface; Wayland input hit testing still sees only real clients.
+
+Desktop JavaScript runs natively in a lazily created Bun worker, without SES or
+seccomp. `lib/desktop.js` resolves and imports the existing installed/sibling
+Buninu Browser's `lib/browser-dialog.js` unchanged rather than maintaining a second
+UI implementation. Its synchronous UTF-16 shared-memory reply layout follows
+`lib/renderer/dialog-worker.js` and `dialog-client.js`. Browser source checkout at
+implementation: `00a2153` (MIT). Dialog CDP notifications, Page enable/disable and
+handleJavaScriptDialog are reused from that browser CDP implementation in the local
+adapter only; the preserved vendor original is untouched. The complete current
+diff remains in `patches/cdp-input.patch`.

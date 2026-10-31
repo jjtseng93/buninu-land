@@ -75,6 +75,49 @@ QT_QPA_PLATFORM=wayland konsole
 
 Konsole startup, rendering, keyboard input, and mouse input have been verified.
 
+### Wallpaper and desktop JavaScript
+
+Specify a wallpaper through the engine flags:
+
+```sh
+bun index.js -- --wallpaper /path/to/image.jpg
+bun index.js --headless --wallpaper=/path/to/image.jpg
+```
+
+A directory, missing/unreadable file, or unsupported/corrupt image falls back to
+Land's bundled `wallpaper.jpg`, not a file in the supplied directory. Without the
+flag, the existing solid background remains until `setWallpaper()` is called.
+Images keep their aspect ratio and are center-cropped to fill the output.
+
+In Casty's URL bar, enter:
+
+```js
+javascript:setWallpaper('/path/to/image.jpg')
+javascript:setWallpaper(prompt('Wallpaper path'))
+javascript:alert(1 + 2)
+javascript:if (confirm('Change wallpaper?')) setWallpaper('/path/to/image.jpg')
+```
+
+`setWallpaper(path)` returns a Promise resolving to the selected absolute path
+(including the built-in path when fallback was necessary). Relative paths are
+resolved in Land's working directory. A null path (canceling `prompt`) leaves the
+wallpaper unchanged and resolves to null. Ordinary URLs still display the Wayland
+socket address; `javascript:` does not create a page or navigate a Wayland client.
+
+Desktop commands execute as native Bun JavaScript in a persistent worker, created
+only on the first command. It is **not sandboxed** and has normal Bun filesystem
+and process access. It is separate from clients' JavaScript and the render worker.
+The command worker blocks for synchronous `alert`, `confirm`, and `prompt`, while
+Land keeps processing UI and Wayland events. Land shutdown terminates this worker,
+cancels pending evaluations, and closes open dialogs.
+
+Dialogs reuse Buninu Browser's existing `BrowserDialog` UI and renderer unchanged,
+including scrolling, text selection, copy/paste, and keyboard input. A local
+`buninu-browser` installation is needed for dialogs: Land searches module resolution,
+the neighboring checkout, the Bun installation's global module directory, then
+`/usr/lib/node_modules`. Nothing is installed automatically. Wallpaper and commands
+without dialogs do not load the browser renderer or CanvasKit.
+
 ### Chromium and Firefox
 
 In another terminal, use the same socket directory and name as the compositor. The author verified that Chromium only needs `XDG_RUNTIME_DIR`, `WAYLAND_DISPLAY`, and `--ozone-platform=wayland --no-sandbox`; `--disable-gpu` is not required:
@@ -291,6 +334,25 @@ With updated Casty and native bunterm, raw frames take priority over configured 
 Land's private `Page.captureScreenshot` formats `bgra` and `rgba` return `data` containing a JSON descriptor (`version:1`, `transport:"file"`, `path`, `width`, `height`, `stride`, `format`, `bytes`), not base64 pixels. BGRA writes the direct compositor's existing pixels; RGBA swaps red/blue when needed. Casty forwards the path using Kitty temporary-file transfer, and bunterm reads/unlinks it. The producer owns and cleans the directory even when its render worker is terminated. Outstanding files are limited to 16 / 128 MiB; abandoned files expire after 60 seconds when another raw frame is produced. This needs a shared local filesystem, not remote CDP over a network.
 
 The private Kitty query uses `f=1111970369` and requires the exact reply `OK Buninu1 bgra` or `OK Buninu1 rgba`; plain `OK` is insufficient. Raw takes priority even over an explicit configured codec, which becomes its fallback. BGRA placement uses the private format; RGBA retains standard `f=32`. Neither this private format nor the preference reply is an upstream Kitty standard. Native bunterm chooses from framebuffer channel bitfields; unknown layouts conservatively use PNG. Browser jsgotty does not advertise this extension.
+
+### Wallpaper preparation and cache lifetime
+
+Bun.Image performs bilinear resizing and emits PNG with compression level 0.
+A small JS decoder converts its own non-interlaced RGBA8 output into BGRA pixels,
+flattened over the existing background color. No CanvasKit or native addon is
+loaded for this path. Each logical width/height/device-scale combination retains
+its prepared surface until another wallpaper is selected or Land closes, so
+switching back to a previously used size does not decode or resize again.
+The regular TS compositor handles the wallpaper as the bottom surface; opaque
+covering clients retain the full-frame bypass. The worker receives immutable
+wallpaper pixels through the existing surface transport.
+
+Each cached size costs four bytes per physical pixel (1920×1080 is about 7.9 MiB).
+Encoded input and decoded/cover intermediates have byte/pixel limits; the cache
+intentionally retains all requested sizes for the current wallpaper. This is
+separate from command-worker memory. Replacing the wallpaper releases the old
+size cache. The local comparison is reproducible with `bun bench/wallpaper.js`;
+see [benchmark details](bench/wallpaper.md).
 
 ## Renderer worker
 

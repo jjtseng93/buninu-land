@@ -1,6 +1,6 @@
 --- vendor/buninu-browser/cdp-server.js
 +++ lib/cdp-server.js
-@@ -38,0 +39,8 @@
+@@ -38,0 +39,12 @@
 +    // A compositor exposes one existing desktop, including before any viewer connects.
 +    if (context.desktopTarget) {
 +      const target = createTarget(state, context.desktopTarget.url, context.desktopTarget);
@@ -9,23 +9,51 @@
 +      initial.navigated.resolve();
 +      initial.settled.resolve();
 +    }
-@@ -479,0 +488 @@
++    context.onDialog?.((request, result) => {
++      for(const sessions of state.dialogListeners.values())for(const emit of sessions.values())
++        emit(request?'Page.javascriptDialogOpening':'Page.javascriptDialogClosed',request?{...request,hasBrowserHandler:true}:{result:result.accept,userInput:result.promptText??''});
++    });
+@@ -217,0 +230 @@
++          state.dialogListeners.delete(ws);
+@@ -294,0 +308 @@
++    dialogListeners: new Map(),
+@@ -399,0 +414 @@
++      state.dialogListeners.get(emit.owner)?.delete(params.sessionId);
+@@ -404 +419,9 @@
+-    case "Page.enable":
++    case "Page.enable": {
++      let sessions=state.dialogListeners.get(emit.owner);
++      if(!sessions)state.dialogListeners.set(emit.owner,sessions=new Map());
++      sessions.set(sessionId??null,emit);
++      if(ctx.dialogState)emit('Page.javascriptDialogOpening',{...ctx.dialogState,hasBrowserHandler:true});
++      return {};
++    }
++    case "Page.disable": {
++      state.dialogListeners.get(emit.owner)?.delete(sessionId??null);
+@@ -405,0 +429,6 @@
++    }
++    case "Page.handleJavaScriptDialog": {
++      if(!ctx.dialogState)throw Error('No JavaScript dialog is open');
++      ctx.handleDialog?.({accept:Boolean(params.accept),promptText:String(params.promptText??'')});
++      return {};
++    }
+@@ -479,0 +509 @@
 +      if (ctx.resolveNavigationUrl) params = { ...params, url: ctx.resolveNavigationUrl(params.url) };
-@@ -725,0 +735 @@
+@@ -725,0 +756 @@
 +      if (ctx.dispatchMouseEvent) { await ctx.dispatchMouseEvent(params); return {}; }
-@@ -766,0 +777 @@
+@@ -766,0 +798 @@
 +      if (ctx.dispatchKeyEvent) { await ctx.dispatchKeyEvent(params); return {}; }
-@@ -849,0 +861,3 @@
+@@ -849,0 +882,3 @@
 +  // Casty's normal launch requests a target too; reuse the same desktop.
 +  if (state.context?.desktopTarget && state.targets.size) return state.targets.values().next().value;
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -999,0 +1014 @@
+@@ -999,0 +1035 @@
 +  url = state.context?.resolveNavigationUrl?.(url) ?? url;
-@@ -1091,0 +1107 @@
+@@ -1091,0 +1128 @@
 +  const url = state.context?.resolveNavigationUrl?.("about:blank") ?? "about:blank";
-@@ -1102 +1118 @@
+@@ -1102 +1139 @@
 -    url: "about:blank",
 +    url,
-@@ -1110 +1126 @@
+@@ -1110 +1147 @@
 -        url: "about:blank",
 +        url,

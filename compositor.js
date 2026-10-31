@@ -62,8 +62,11 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
   // A wallpaper is render-only: never expose it to window-manager hit testing.
   const renderCompositor=Object.create(compositor);
   renderCompositor.wm=Object.create(compositor.wm);
-  renderCompositor.wm.renderSurfaces=()=>wallpaper.surface?[wallpaper.surface,...surfaces()]:surfaces();
-  renderCompositor.wm.origin=s=>s.wallpaper?{x:0,y:0}:origin(s);
+  renderCompositor.wm.renderSurfaces=()=>{
+    const list=wallpaper.surface?[wallpaper.surface,...surfaces()]:surfaces();
+    const modal=desktop?.dialogs?.surface;return modal?[...list,modal]:list;
+  };
+  renderCompositor.wm.origin=s=>s.wallpaper||s.desktopDialog?{x:0,y:0}:origin(s);
   const close = () => { if (!compositor.closed) { compositor.closed = true; server?.stop(true); desktop?.close(); wallpaper.close(); renderer?.close(); compositor.close(); if (shutdown) { process.removeListener('SIGINT', shutdown); process.removeListener('SIGTERM', shutdown); } } };
   try {
     compositor.fastPng = args.filter(arg => arg === '--fast-png' || arg === '--no-fast-png').at(-1) !== '--no-fast-png';
@@ -98,7 +101,7 @@ Run clients with WAYLAND_DISPLAY=wayland-buninu weston-simple-shm`); return;
         try{source=decodeURIComponent(source);}catch{}
         return desktop.evaluate(source);
       },
-      evaluate: expression => desktop.evaluate(expression),
+      evaluate: expression => desktop.inspect(expression),
       title() { return 'Buninu Land'; },
       onDialog(fn){desktop.dialogListener=fn;},
       get dialogState(){return desktop.dialogState;},

@@ -108,10 +108,17 @@ render worker 都是分開的。同步 `alert`、`confirm`、`prompt` 只阻塞�
 Land 仍能處理 UI 與 Wayland 事件。關閉 Land 時會終止 worker、取消待回覆的執行請求，
 並關閉對話框。
 
-對話框原樣重用 Buninu Browser 現有的 `BrowserDialog` UI 與 renderer，包含捲動、
-文字選取、複製貼上與鍵盤輸入。對話框需要本機已有 `buninu-browser`：依序從模組解析、
-隔壁 checkout、Bun 安裝位置的全域模組目錄，以及 `/usr/lib/node_modules` 尋找。
-不會自動安裝套件。單純桌布或不使用對話框的指令，不會載入瀏覽器 renderer／CanvasKit。
+Land 自行把對話框畫成軟體覆蓋圖層，只使用既有 CanvasKit 的文字與點陣繪圖能力，
+不啟動瀏覽器引擎或額外 renderer 程序。長訊息可用滾輪、方向鍵、Page Up/Down、
+Home/End 捲動；可拖曳或 Ctrl-A 選取文字，以 Ctrl-C 複製。Prompt 支援編輯、選取、
+複製貼上、Tab、Enter 與 Escape。剪貼板沿用 Land 優先讀取 host 的既有路徑。
+內附 DejaVu Sans Mono；若已有安裝 Noto CJK 字型就使用其字型檔，不載入瀏覽器程式碼。
+關閉對話框會釋放文字排版與像素緩衝，關閉 Land 會釋放字型管理器。
+單純桌布與不使用對話框的指令不會載入 CanvasKit。
+
+對話框開啟時，依賴 DOM 的 CDP evaluate 會立即回報錯誤，避免等待已暫停的指令
+worker；滑鼠、鍵盤輸入與 `Page.handleJavaScriptDialog` 仍能操作。
+桌面指令依然在原生指令 worker 中執行。
 
 ### Chromium 與 Firefox
 
@@ -372,7 +379,7 @@ env WAYLAND_DISPLAY=wayland-buninu DRI_PRIME=pci-0000_04_00_0 glmark2-wayland
 
 ### 自動 CPU 繪製優化
 
-所有場景以純 TypeScript 軟體合成，支援旋轉、翻轉、viewport 裁切、小數座標、縮放、預乘透明度與游標，不再退回 CanvasKit。完整不透明畫面仍可直接複製；舊實作完整保留在 `lib/renderer.js` 與 `lib/direct-compositor.js`，也用於畫素對照。要退回時，把 `lib/renderer.js` 的 TypeScript re-export 換成 `export {createLegacyRenderer as createRenderer};` 即可；只有使用舊 renderer 才載入 CanvasKit。這不是 GPU 合成，也不需要 AOT 或預先編譯。XRGB 的未使用 alpha 一律視為不透明。
+所有場景以純 TypeScript 軟體合成，支援旋轉、翻轉、viewport 裁切、小數座標、縮放、預乘透明度與游標，不再退回 CanvasKit。完整不透明畫面仍可直接複製；舊實作完整保留在 `lib/renderer.js` 與 `lib/direct-compositor.js`，也用於畫素對照。要退回時，把 `lib/renderer.js` 的 TypeScript re-export 換成 `export {createLegacyRenderer as createRenderer};` 即可；只有使用舊 renderer 或桌面對話框才載入 CanvasKit。這不是 GPU 合成，也不需要 AOT 或預先編譯。XRGB 的未使用 alpha 一律視為不透明。
 
 Land 會先把 SHM／DMA-BUF 內容複製成自己持有的不可變快照；環境支援時以 `SharedArrayBuffer` 儲存，renderer worker 可以共用快照，省掉另一次完整像素複製。client 持有的映射不會直接分享給 worker，原有 buffer 釋放與讀取同步仍保留。不支援共享 buffer 的 runtime 會使用一般快照。
 

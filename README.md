@@ -111,12 +111,20 @@ The command worker blocks for synchronous `alert`, `confirm`, and `prompt`, whil
 Land keeps processing UI and Wayland events. Land shutdown terminates this worker,
 cancels pending evaluations, and closes open dialogs.
 
-Dialogs reuse Buninu Browser's existing `BrowserDialog` UI and renderer unchanged,
-including scrolling, text selection, copy/paste, and keyboard input. A local
-`buninu-browser` installation is needed for dialogs: Land searches module resolution,
-the neighboring checkout, the Bun installation's global module directory, then
-`/usr/lib/node_modules`. Nothing is installed automatically. Wallpaper and commands
-without dialogs do not load the browser renderer or CanvasKit.
+Land draws dialogs itself as a software overlay, using its existing CanvasKit
+text/raster primitives. No browser engine or additional renderer process is
+started. Long messages scroll with the wheel, arrows, Page Up/Down and Home/End;
+text can be selected by dragging or Ctrl-A and copied with Ctrl-C. Prompts support
+editing, selection, copy/paste, Tab, Enter and Escape. Clipboard operations use
+Land's existing host-first clipboard path. DejaVu Sans Mono is bundled; an installed Noto
+CJK font is used when available, without loading browser code. Closing a dialog
+releases its text layout and pixel buffer; Land shutdown releases its font manager.
+Wallpaper and commands without dialogs do not load CanvasKit.
+
+While a dialog is open, DOM-based CDP evaluations fail immediately rather than
+waiting on the paused command worker. Pointer/key input and
+`Page.handleJavaScriptDialog` remain available. Desktop commands still execute
+in the native command worker.
 
 ### Chromium and Firefox
 
@@ -399,7 +407,7 @@ This accelerates **client rendering**. Land still imports CPU-mappable linear bu
 
 ### Automatic CPU rendering optimizations
 
-All scenes use pure TypeScript software composition, including rotation, flips, viewport crops, fractional positions, scaling, premultiplied transparency and cursors, without a CanvasKit fallback. Full opaque frames retain the copy shortcut. The original implementations remain in `lib/renderer.js` and `lib/direct-compositor.js`, also used for pixel comparisons. To revert, replace the TypeScript re-export in `lib/renderer.js` with `export {createLegacyRenderer as createRenderer};`. CanvasKit loads only when the legacy renderer is used. This is CPU composition and requires neither AOT nor a build step. Unused XRGB alpha is always treated as opaque.
+All scenes use pure TypeScript software composition, including rotation, flips, viewport crops, fractional positions, scaling, premultiplied transparency and cursors, without a CanvasKit fallback. Full opaque frames retain the copy shortcut. The original implementations remain in `lib/renderer.js` and `lib/direct-compositor.js`, also used for pixel comparisons. To revert, replace the TypeScript re-export in `lib/renderer.js` with `export {createLegacyRenderer as createRenderer};`. CanvasKit loads only for the legacy renderer or desktop dialogs. This is CPU composition and requires neither AOT nor a build step. Unused XRGB alpha is always treated as opaque.
 
 Land copies SHM and DMA-BUF contents into its own immutable snapshots backed by `SharedArrayBuffer` when available. The renderer worker shares those snapshots without another full pixel copy. Client-owned mappings are never shared with the worker, and buffer release/read synchronization remain in place. Runtimes without shared buffers use ordinary snapshots.
 

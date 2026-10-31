@@ -60,11 +60,12 @@ fallback asset. The software TS compositor receives it as an ordinary render-onl
 bottom surface; Wayland input hit testing still sees only real clients.
 
 Desktop JavaScript runs natively in a lazily created Bun worker, without SES or
-seccomp. `lib/desktop.js` resolves and imports the existing installed/sibling
-Buninu Browser's `lib/browser-dialog.js` unchanged rather than maintaining a second
-UI implementation. Its synchronous UTF-16 shared-memory reply layout follows
-`lib/renderer/dialog-worker.js` and `dialog-client.js`. Browser source checkout at
-implementation: `00a2153` (MIT). Dialog CDP notifications, Page enable/disable and
-handleJavaScriptDialog are reused from that browser CDP implementation in the local
-adapter only; the preserved vendor original is untouched. The complete current
-diff remains in `patches/cdp-input.patch`.
+seccomp.
+Land's modal UI is implemented in `lib/desktop-dialog.js` using the already
+vendored CanvasKit raster/text API, with no browser engine or renderer process.
+The synchronous reply layout follows the browser's dialog-worker/client transport.
+DejaVu Sans Mono and its license are bundled in `vendor/fonts`; optional installed
+Noto CJK font assets are used without importing browser code.
+
+The existing CDP dialog events and Page.handleJavaScriptDialog adapter remain
+recorded in patches/cdp-input.patch; the vendor original is unchanged.

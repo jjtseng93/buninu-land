@@ -65,7 +65,10 @@ Land's modal UI is implemented in `lib/desktop-dialog.js` using the already
 vendored CanvasKit raster/text API, with no browser engine or renderer process.
 The synchronous reply layout follows the browser's dialog-worker/client transport.
 DejaVu Sans Mono and its license are bundled in `vendor/fonts`; optional installed
-Noto CJK font assets are used without importing browser code.
+Roboto, Noto CJK, Color Emoji, flags and Symbols/Symbols2 font assets are used
+without importing browser code. Explicit provider aliases preserve the two
+Symbols subsets even when their internal family names are identical; a shared
+font collection reuses matching caches and is released on Land shutdown.
 
 The existing CDP dialog events and Page.handleJavaScriptDialog adapter remain
 recorded in patches/cdp-input.patch; the vendor original is unchanged.

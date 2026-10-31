@@ -112,7 +112,9 @@ Land 自行把對話框畫成軟體覆蓋圖層，只使用既有 CanvasKit 的�
 不啟動瀏覽器引擎或額外 renderer 程序。長訊息可用滾輪、方向鍵、Page Up/Down、
 Home/End 捲動；可拖曳或 Ctrl-A 選取文字，以 Ctrl-C 複製。Prompt 支援編輯、選取、
 複製貼上、Tab、Enter 與 Escape。剪貼板沿用 Land 優先讀取 host 的既有路徑。
-內附 DejaVu Sans Mono；若已有安裝 Noto CJK 字型就使用其字型檔，不載入瀏覽器程式碼。
+內附 DejaVu Sans Mono；會從系統字型目錄、已安裝或隔壁的 buninu-browser 字型資源
+尋找 Roboto、Noto CJK、彩色 emoji、旗幟及 Symbols／Symbols2 符號字型，
+包含字型提供的高音譜記號 𝄞 等音樂符號。不載入瀏覽器程式碼，也不下載字型。
 關閉對話框會釋放文字排版與像素緩衝，關閉 Land 會釋放字型管理器。
 單純桌布與不使用對話框的指令不會載入 CanvasKit。
 

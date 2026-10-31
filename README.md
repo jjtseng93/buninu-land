@@ -116,8 +116,11 @@ text/raster primitives. No browser engine or additional renderer process is
 started. Long messages scroll with the wheel, arrows, Page Up/Down and Home/End;
 text can be selected by dragging or Ctrl-A and copied with Ctrl-C. Prompts support
 editing, selection, copy/paste, Tab, Enter and Escape. Clipboard operations use
-Land's existing host-first clipboard path. DejaVu Sans Mono is bundled; an installed Noto
-CJK font is used when available, without loading browser code. Closing a dialog
+Land's existing host-first clipboard path. DejaVu Sans Mono is bundled. Installed Roboto, Noto CJK, color emoji, flags,
+and Symbols/Symbols2 fonts are discovered in system font directories and
+installed or neighboring buninu-browser font assets, without loading browser
+code or downloading fonts. This includes musical symbols such as 𝄞 when the
+Symbols font provides them. Closing a dialog
 releases its text layout and pixel buffer; Land shutdown releases its font manager.
 Wallpaper and commands without dialogs do not load CanvasKit.
 

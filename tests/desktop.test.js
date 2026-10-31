@@ -187,3 +187,22 @@ test('Land-owned prompt uses no browser host, keeps long input visible and relea
   expect(ui.surface).toBeNull();expect(ui.paragraph).toBeNull();expect(entry.timer).toBeNull();
  }finally{app.close();}
 },20000);
+
+(await Bun.file(new URL('../../buninu-browser/usr/share/fonts/NotoColorEmoji.ttf',import.meta.url)).exists()?test:test.skip)('installed font assets render colored emoji, flags and the musical G clef without a browser engine',async()=>{
+ const app=await appFor('font-assets');
+ try{
+  const answer=app.context.evaluate("alert('中文 🐮 🌈 🇹🇼 𝄞 ♩ ♪ ♫ ∑ →')");answer.catch(()=>{});
+  await until(()=>app.desktop.active);const ui=app.desktop.dialogs;await ui.active.ready;
+  for(const family of ['Noto Color Emoji','Noto Color Emoji Flags','Noto Sans CJK','Noto Sans Symbols','Noto Sans Symbols2'])expect(ui.fontFamilies).toContain(family);
+  const K=ui.CK,face=ui.fonts.matchFamilyStyle('Noto Sans Symbols',{weight:400,width:5,slant:K.FontSlant.Upright});
+  try{expect(face.getGlyphIDs('𝄞')[0]).toBeGreaterThan(0);}finally{face?.delete();}
+  const {bytes,width}=ui.surface.pixels,g=ui.geometry;let colored=0;
+  for(let y=Math.ceil(g.my);y<Math.floor(g.my+g.mh);y++)for(let x=Math.ceil(g.mx);x<Math.floor(g.mx+g.inner);x++){
+   const i=(y*width+x)*4,b=bytes[i],green=bytes[i+1],r=bytes[i+2];
+   if(Math.max(r,green,b)-Math.min(r,green,b)>40)colored++;
+  }
+  expect(colored).toBeGreaterThan(20);
+  app.context.handleDialog({accept:true});await answer;
+  app.close();expect(ui.fontCollection).toBeNull();expect(ui.fonts).toBeNull();
+ }finally{app.close();}
+},20000);

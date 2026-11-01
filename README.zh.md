@@ -459,6 +459,8 @@ pagefile mapping。socket 仍由 Bun 的普通 Unix socket API 監聽在原本 r
 （`XDG_RUNTIME_DIR`、`TMPDIR`、系統暫存目錄），並設定 Land 印出的 `WAYLAND_DISPLAY`。
 原本 Wayland 訊息包在私有版本封裝內，以 mapping 名稱取代 SCM_RIGHTS；畫面仍用
 commit/release 同步，ACK 確保接收端開好 mapping 才釋放傳送端持有的 handle。
+Windows socket 名稱由獨占 lock 檔保護：關閉或崩潰後可回收殘留 AF_UNIX endpoint，
+仍在運行的實例則保留名稱。退出後 `.lock` 檔可能仍存在，單憑檔案存在不代表占用。
 鍵盤 keymap、剪貼板 pipe 也走 mapping；既有 xclip 優先、PowerShell fallback
 維持不變。Linux／Android 保留原本 libc 傳輸，Windows 不支援 DMA-BUF。
 尚待 Windows 真機端到端驗證；Browser 專案的 `test/wayland-win32-resources.test.js`

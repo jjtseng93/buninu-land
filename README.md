@@ -489,6 +489,9 @@ path. Browser clients use `bun index.js --wayland URL`, the same runtime directo
 The socket carries unchanged Wayland messages inside a private versioned envelope
 with mapping names instead of SCM_RIGHTS. Pixel buffers retain commit/release
 synchronization; resource ACKs and disconnect cleanup bound handle lifetimes.
+Windows socket names have exclusive lock files; closed or crashed owners allow
+stale AF_UNIX endpoints to be reclaimed, while live owners keep their names.
+The `.lock` file may remain after exit; its existence alone does not mean busy.
 Keymaps and clipboard pipes also use mappings; existing xclip-first/PowerShell
 host clipboard backends are unchanged. Linux/Android keep the original libc
 transport. Windows DMA-BUF is unavailable. Native Windows end-to-end validation

@@ -11,7 +11,7 @@ export async function start(args = Bun.argv.slice(2)) {
   const option = (name, fallback) => args.find(a => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback;
   if (args.some(arg => ['--version', '-V', '-version'].includes(arg))) { console.log(`${packageInfo.name} ${packageInfo.version}`); return; }
   if (args.some(arg => ['--help', '-h', '-help'].includes(arg))) {
-    console.log(`buninu-land: software Wayland compositor (Bun, Linux/Android 64-bit)
+    console.log(`buninu-land: software Wayland compositor (Bun; Linux/Android or experimental Windows mappings)
   --socket=NAME                   Wayland socket (default: first free wayland-buninu[N])
   --remote-debugging-port=PORT     CDP port (default 9222; 0 selects a free port)
   --window-size=WIDTH,HEIGHT       Output size (default 800,600)

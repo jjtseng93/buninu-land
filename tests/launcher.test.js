@@ -9,6 +9,7 @@ const entry = Bun.fileURLToPath(new URL('../index.js', import.meta.url));
 const engine = Bun.fileURLToPath(new URL('../compositor.js', import.meta.url));
 
 test('launcher preserves browser frontend and package runner selection', () => {
+  expect(chooseFrontend(['--win32','--','--socket=test'])).toEqual({frontend:'win32',args:['--','--socket=test']});
   expect(chooseFrontend([])).toEqual({ frontend: 'casty', args: [] });
   expect(chooseFrontend(['--casty', '--help']).args).toEqual(['--help']);
   expect(chooseFrontend(['--headless', '--socket=test'])).toEqual({ frontend: 'headless', args: ['--socket=test'] });
@@ -37,9 +38,13 @@ test('help/version aliases, native placeholders, and headless forwarding', async
     expect(await child.exited).toBe(0); const output=await new Response(child.stdout).text();expect(output).toContain('buninu-land');
     if(['--help','-h'].includes(flag))for(const option of ['--gpu','--linear-dmabuf','--lazy-dmabuf','--poll-interval','--no-fast-png','--no-render-worker'])expect(output).toContain(option);
   }
-  for (const frontend of ['--win32','--gtk','--appkit','--qt']) {
+  for (const frontend of ['--gtk','--appkit','--qt']) {
     const child=Bun.spawn([process.execPath,entry,frontend],{stdout:'pipe',stderr:'pipe'});
     expect(await child.exited).toBe(2); expect(await new Response(child.stderr).text()).toContain('not implemented');
+  }
+  if(process.platform!=='win32'){
+    const native=Bun.spawn([process.execPath,entry,'--win32'],{stdout:'pipe',stderr:'pipe'});
+    expect(await native.exited).toBe(2);expect(await new Response(native.stderr).text()).toContain('requires Windows');
   }
   const child=Bun.spawn([process.execPath,entry,'--headless','-V'],{stdout:'pipe',stderr:'pipe'});
   expect(await child.exited).toBe(0);expect(await new Response(child.stdout).text()).toContain(`buninu-land ${version}`);

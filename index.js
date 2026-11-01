@@ -9,7 +9,8 @@
  *   --casty      the terminal frontend (default): runs casty with
  *                CASTY_BROWSER set to this package's compositor.js
  *   --headless   the engine alone (compositor.js, a CDP endpoint)
- *   --win32, --gtk, --appkit, --qt
+ *   --win32      native Windows window through Casty
+ *   --gtk, --appkit, --qt
  *                reserved for the native windowed frontends (not implemented)
  *
  *   --help, -h / --version, -V / --readme, --readme-zh, --docs
@@ -33,7 +34,7 @@ export * from "./compositor.js";
 
 const CASTY_PACKAGE = "@drxiaozhi/casty";
 const ENGINE = join(import.meta.dir, "compositor.js");
-const RESERVED_FRONTENDS = new Set(["--win32", "--gtk", "--appkit", "--qt"]);
+const RESERVED_FRONTENDS = new Set(["--gtk", "--appkit", "--qt"]);
 const INFORMATION = new Map([
   ["--help", "help"], ["-h", "help"], ["-help", "help"],
   ["--version", "version"], ["-V", "version"], ["-version", "version"],
@@ -45,6 +46,7 @@ const INFORMATION = new Map([
 export function chooseFrontend(argv) {
   const [first, ...rest] = argv;
   if (first === "--casty") return { frontend: "casty", args: rest };
+  if (first === "--win32") return { frontend: "win32", args: rest };
   if (first === "--headless") return { frontend: "headless", args: rest };
   if (RESERVED_FRONTENDS.has(first)) return { frontend: first.slice(2), args: rest, reserved: true };
   if (INFORMATION.has(first)) return { frontend: INFORMATION.get(first), args: rest, information: true };
@@ -84,7 +86,9 @@ Frontends (first argument only):
   --headless
       Start the engine only, as a CDP endpoint
       The engine's options: ${name} --headless --help
-  --win32, --gtk, --appkit, --qt
+  --win32
+      Native Windows window through Casty
+  --gtk, --appkit, --qt
       Native windowed frontends (reserved, not implemented yet)
 
 Wayland:
@@ -149,7 +153,7 @@ function printVersion() {
   console.log("Platform:", `${process.platform}-${process.arch}`);
   console.log("Engine:", ENGINE);
   console.log("casty launcher:", castyCommand([]).join(" "));
-  console.log("Frontends: casty (default), headless; reserved: win32, gtk, appkit, qt");
+  console.log("Frontends: casty (default), headless, win32; reserved: gtk, appkit, qt");
 }
 
 async function printReadme(filename = "README.md") {
@@ -182,8 +186,12 @@ if (import.meta.main) {
     await printReadme(frontend === "readme-zh" ? "README.zh.md" : "README.md");
     process.exit(0);
   }
+  if (frontend === "win32" && process.platform !== "win32") {
+    console.error("buninu-land: --win32 requires Windows");
+    process.exit(2);
+  }
   const code = frontend === "headless"
     ? await run([process.execPath, ENGINE, ...args])
-    : await run(castyCommand(args), { ...process.env, CASTY_BROWSER: ENGINE });
+    : await run(castyCommand(frontend === "win32" ? ["--win32", ...args] : args), { ...process.env, CASTY_BROWSER: ENGINE });
   process.exit(code ?? 1);
 }

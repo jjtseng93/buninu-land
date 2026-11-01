@@ -10,7 +10,7 @@ A Wayland compositor in JavaScript and WebAssembly for Bun
 
 ## 執行
 
-需要 Linux 或 Android 64-bit（aarch64 或 x86_64），以及提供 `Bun.XML`、`Bun.Image`、`bun:ffi` 的 Bun。`process.platform === 'android'` 時載入 Bionic `libc.so`／`__errno`；Linux 優先載入 `libc.so.6`／`__errno_location`。已在 Linux aarch64、Bun 1.4.3-canary.1 實測；作者也已完成 Android 原生環境驗證。
+標準 Wayland 傳輸需要 Linux 或 Android 64-bit（aarch64 或 x86_64）；Windows 具名 mapping 實驗性傳輸見後文。需要提供 `Bun.XML`、`Bun.Image`、`bun:ffi` 的 Bun。`process.platform === 'android'` 時載入 Bionic `libc.so`／`__errno`；Linux 優先載入 `libc.so.6`／`__errno_location`。已在 Linux aarch64、Bun 1.4.3-canary.1 實測；作者也已完成 Android 原生環境驗證。
 
 直接執行專案入口，就會自動啟動 Casty，再由 Casty 帶起 compositor：
 
@@ -37,7 +37,7 @@ bun x buninu-land
 （[GitHub 原始碼](https://github.com/jjtseng93/casty)）。
 `bun index.js` 使用同一套套件啟動流程；headless 模式不會下載 Casty。
 
-`--casty` 為預設前端；`--headless` 只執行 compositor。`--win32`、`--gtk`、`--appkit`、`--qt` 保留 browser 的原生 UI 占位命令，目前會說明尚未實作並以狀態碼 2 離開。第一個參數選擇前端，其餘參數原樣傳遞。
+`--casty` 為預設前端；`--headless` 只執行 compositor。`--win32` 使用 Casty 現有的 Windows 原生視窗；`--gtk`、`--appkit`、`--qt` 仍為占位命令，會以狀態碼 2 離開。第一個參數選擇前端，其餘參數原樣傳遞。
 
 ```sh
 bun index.js --help       # 或 -h
@@ -265,7 +265,7 @@ selection 獨立保存於 Land 內。目前不支援拖放，也不在來源程�
 macOS 的 `pbcopy`／`pbpaste`；其他平台依序嘗試上層 compositor 的
 `wl-copy`／`wl-paste`、`xsel`、Termux 剪貼簿命令。失敗會嘗試下一個工具，
 不影響 Wayland 程式間交換資料。每個系統剪貼簿命令最多執行 2.5 秒。PowerShell 引號與換行處理原樣複製自 jsmdcui。
-Land 本身仍需要 Linux／Android；Windows 命令優先順序已由單元測試驗證。
+Linux／Android 使用標準 fd 傳輸；Windows 的實驗性傳輸使用具名共享記憶體。Windows 命令優先順序已由單元測試驗證。
 
 複製文字選取時，僅匯出一次；空文字不會覆蓋系統剪貼簿，也不會取代下述快取。不設剪貼簿計時器，
 也不在焦點切換時或輪詢讀取系統剪貼簿。每次收到純文字貼上請求時先讀系統，
@@ -447,3 +447,19 @@ Casty 每秒收到約 17–20 張完整尺寸圖片；client FPS 不等於顯示
 
 專案原始碼採 MIT，見 `LICENSE`。沿用的 browser 程式、CanvasKit WASM 及其內含元件、Wayland XML 各自的來源與授權，見 `THIRD_PARTY_NOTICES.md`、`LICENSES/`、`SOURCES.md`；第三方授權不被專案的 MIT 宣告取代。
 
+
+### Windows Wayland 傳輸（unstable）
+
+**unstable：Windows fd 替代傳輸尚待真機端到端驗證。**
+
+實驗性支援：`bun index.js --win32` 沿用 Casty 的 Windows 原生視窗。
+只有 Windows 才載入 kernel32，建立 UUID 命名的 `Local\buninu-wayland-...`
+pagefile mapping。socket 仍由 Bun 的普通 Unix socket API 監聽在原本 runtime
+路徑。Browser 用 `bun index.js --wayland URL`，兩端使用相同的 runtime 目錄
+（`XDG_RUNTIME_DIR`、`TMPDIR`、系統暫存目錄），並設定 Land 印出的 `WAYLAND_DISPLAY`。
+原本 Wayland 訊息包在私有版本封裝內，以 mapping 名稱取代 SCM_RIGHTS；畫面仍用
+commit/release 同步，ACK 確保接收端開好 mapping 才釋放傳送端持有的 handle。
+鍵盤 keymap、剪貼板 pipe 也走 mapping；既有 xclip 優先、PowerShell fallback
+維持不變。Linux／Android 保留原本 libc 傳輸，Windows 不支援 DMA-BUF。
+尚待 Windows 真機端到端驗證；Browser 專案的 `test/wayland-win32-resources.test.js`
+提供 mapping 與 socket 的原生測試。

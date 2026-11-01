@@ -10,7 +10,7 @@ A Wayland compositor that runs directly in Bun. The first version supports headl
 
 ## Running
 
-Requires 64-bit Linux or Android (aarch64 or x86_64) and a Bun runtime providing `Bun.XML`, `Bun.Image`, and `bun:ffi`. When `process.platform === 'android'`, it loads Bionic's `libc.so` and `__errno`; on Linux, it prefers `libc.so.6` and `__errno_location`. Testing has covered Linux aarch64 with Bun 1.4.3-canary.1. Native Android operation has also been verified by the project author.
+The standard Wayland transport requires 64-bit Linux or Android (aarch64 or x86_64); experimental Windows named-mapping transport is described below. Requires a Bun runtime providing `Bun.XML`, `Bun.Image`, and `bun:ffi`. When `process.platform === 'android'`, it loads Bionic's `libc.so` and `__errno`; on Linux, it prefers `libc.so.6` and `__errno_location`. Testing has covered Linux aarch64 with Bun 1.4.3-canary.1. Native Android operation has also been verified by the project author.
 
 Run the project entry point to launch Casty, which then starts the compositor:
 
@@ -37,7 +37,7 @@ then the launcher automatically downloads the terminal frontend
 ([source on GitHub](https://github.com/jjtseng93/casty)) if needed.
 `bun index.js` uses the same package-based Casty launcher. A headless launch does not fetch Casty.
 
-`--casty` selects the default frontend; `--headless` runs only the compositor. `--win32`, `--gtk`, `--appkit`, and `--qt` preserve the browser's native UI placeholders. They currently report that the frontend is not implemented and exit with status 2. The first argument selects the frontend; all remaining arguments are forwarded unchanged.
+`--casty` selects the default frontend; `--headless` runs only the compositor. `--win32` selects Casty's native Windows frontend. `--gtk`, `--appkit`, and `--qt` remain placeholders and exit with status 2. The first argument selects the frontend; all remaining arguments are forwarded unchanged.
 
 ```sh
 bun index.js --help       # Or -h
@@ -284,7 +284,7 @@ PowerShell on Windows; `pbcopy` / `pbpaste` on macOS; otherwise parent-composito
 next tool and never disables Wayland clipboard exchange. Each host command is
 stopped after 2.5 seconds. PowerShell quoting and
 newline handling are copied verbatim from jsmdcui. Land itself still requires
-Linux or Android; the host command adapter's Windows order is unit-tested.
+Linux/Android uses the standard FD transport; the experimental Windows transport uses named mappings. The host command adapter's Windows order is unit-tested.
 
 Copying a text selection exports it once; empty text neither overwrites the
 host clipboard nor replaces the cache below. There is no clipboard timer, focus
@@ -476,3 +476,21 @@ To repeat: start `bun tests/dmabuf-perf.js` in native Termux, then run `bun test
 
 The project's original code is MIT-licensed; see `LICENSE`. Sources and licenses for the reused browser code, CanvasKit WASM and its embedded components, and Wayland XML are documented in `THIRD_PARTY_NOTICES.md`, `LICENSES/`, and `SOURCES.md`. The project's MIT declaration does not replace third-party licenses.
 
+
+### Windows Wayland transport (unstable)
+
+**unstable: this Windows FD replacement transport still requires native end-to-end validation.**
+
+Experimental: `bun index.js --win32` uses Casty's existing native Windows window.
+On Windows only, Land loads kernel32 for UUID-named `Local\buninu-wayland-...`
+pagefile mappings and uses Bun's ordinary Unix socket API at the same runtime
+path. Browser clients use `bun index.js --wayland URL`, the same runtime directory
+(`XDG_RUNTIME_DIR`, `TMPDIR`, system temp), and the printed `WAYLAND_DISPLAY`.
+The socket carries unchanged Wayland messages inside a private versioned envelope
+with mapping names instead of SCM_RIGHTS. Pixel buffers retain commit/release
+synchronization; resource ACKs and disconnect cleanup bound handle lifetimes.
+Keymaps and clipboard pipes also use mappings; existing xclip-first/PowerShell
+host clipboard backends are unchanged. Linux/Android keep the original libc
+transport. Windows DMA-BUF is unavailable. Native Windows end-to-end validation
+is pending; the Browser project's `test/wayland-win32-resources.test.js` contains
+the Windows mapping/socket checks.

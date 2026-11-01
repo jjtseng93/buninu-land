@@ -8,6 +8,7 @@ function system(){
    if([...handles.values()].includes(path)){error=32;return -1}
    const h=next++;handles.set(h,path);return h},
   CloseHandle(h){handles.delete(h);return 1},GetLastError:()=>error,
+  GetFileAttributesW(path){const kind=files.get(text(path));if(!kind){error=2;return 0xffffffff}return kind==='file'?0x80:0x400},
   FindFirstFileW(path,data){const type=files.get(text(path));if(!type){error=2;return -1}
    data.writeUInt32LE(type==='file'?0x80:0x400,0);data.writeUInt32LE(type==='socket'?0x80000023:0xa000000c,36);return 99},
   FindClose:()=>1,DeleteFileW(path){path=text(path);files.delete(path);deleted.push(path);return 1},
@@ -53,4 +54,17 @@ test.skipIf(process.platform!=='win32')('native Windows socket close reuses the 
    server.stop(true);server=null;owner.removeSocket();owner.close();owner=null;
   }
  }finally{server?.stop(true);if(owner){try{owner.removeSocket()}finally{owner.close()}}rmSync(directory,{recursive:true,force:true})}
+});
+
+test('an already manually removed socket skips enumeration and deletion',()=>{
+ const s=system(),owner=new WindowsSocketPath('wayland-buninu',s.k);
+ s.k.FindFirstFileW=()=>{throw Error('must not enumerate a missing path')};
+ try{owner.removeSocket();expect(s.deleted).toEqual([])}finally{owner.close()}
+});
+test('signed 64-bit Win32 invalid handles are not mistaken for successful enumeration',()=>{
+ const s=system(),owner=new WindowsSocketPath('wayland-buninu',s.k);
+ s.k.GetFileAttributesW=()=>0x400;
+ // A path may disappear between the attribute check and enumeration.
+ s.k.FindFirstFileW=()=>-1n;s.k.GetLastError=()=>2;
+ try{owner.removeSocket();expect(s.deleted).toEqual([])}finally{owner.close()}
 });

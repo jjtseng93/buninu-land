@@ -58,7 +58,11 @@ export function chooseFrontend(argv) {
  * bunx, else `bun x` with bun from PATH or process.argv0.
  */
 export function castyCommand(args, which = Bun.which) {
-  args = ["--no-shortcuts", ...args];
+  // Casty's native frontend selector must remain the first argument.
+  // Keep Land's page-key forwarding policy after that selector.
+  args = args[0] === "--win32"
+    ? ["--win32", "--no-shortcuts", ...args.slice(1)]
+    : ["--no-shortcuts", ...args];
   const npx = which("npx");
   const bun = which("bun");
   // npx asks before installing casty (on purpose); --loglevel=error keeps npm

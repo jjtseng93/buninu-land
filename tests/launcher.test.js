@@ -20,6 +20,13 @@ test('launcher preserves browser frontend and package runner selection', () => {
   expect(castyCommand(args, which(['npx','bunx']))).toEqual(['/bin/bunx','@drxiaozhi/casty',...forwarded]);
   expect(castyCommand(args, which(['bun']))).toEqual(['/bin/bun','x','@drxiaozhi/casty',...forwarded]);
   expect(castyCommand(args, which([]))).toEqual([process.argv0,'x','@drxiaozhi/casty',...forwarded]);
+  const native=['--win32','--','--socket=test'];
+  const nativeForwarded=['--win32','--no-shortcuts','--','--socket=test'];
+  expect(castyCommand(native,which(['npx','bun']))).toEqual(['/bin/npx','--loglevel=error','-p','@drxiaozhi/casty','--','casty',...nativeForwarded]);
+  expect(castyCommand(native,which(['bunx']))).toEqual(['/bin/bunx','@drxiaozhi/casty',...nativeForwarded]);
+  expect(castyCommand(native,which(['bun']))).toEqual(['/bin/bun','x','@drxiaozhi/casty',...nativeForwarded]);
+  expect(castyCommand(native,which([]))).toEqual([process.argv0,'x','@drxiaozhi/casty',...nativeForwarded]);
+  expect(native).toEqual(['--win32','--','--socket=test']);
 });
 
 test('default executable forwards CASTY_BROWSER and arguments without downloading', async () => {
